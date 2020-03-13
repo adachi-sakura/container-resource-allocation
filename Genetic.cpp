@@ -2,7 +2,7 @@
 // Created by Administrator on 2020/3/8.
 //
 
-#include "Generic.h"
+#include "Genetic.h"
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>

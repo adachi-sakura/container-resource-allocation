@@ -1,8 +1,8 @@
 //
 // Created by Administrator on 2020/3/8.
 //
-#ifndef GENERIC_ALGORITHM_GENERIC_H
-#define GENERIC_ALGORITHM_GENERIC_H
+#ifndef GENERIC_ALGORITHM_GENETIC_H
+#define GENERIC_ALGORITHM_GENETIC_H
 
 #include <vector>
 
@@ -103,4 +103,4 @@ void select();  //选择
 void crossover();   //交叉
 void mutate();  //变异
 void aggregation(); //聚合
-#endif //GENERIC_ALGORITHM_GENERIC_H
+#endif //GENERIC_ALGORITHM_GENETIC_H
