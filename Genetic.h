@@ -103,4 +103,5 @@ void select();  //选择
 void crossover();   //交叉
 void mutate();  //变异
 void aggregation(); //聚合
+void test();
 #endif //GENERIC_ALGORITHM_GENETIC_H

@@ -46,7 +46,7 @@ void Gene::init(int ms_num)
 {
     uniform_int_distribution<int> random(0, NODES_TOTAL-1);
     this->loc = random(engine);
-    double max_request_cpu = min(nodes[loc].available_cpu(), limitRange.cpu);//受limit range限制
+    double max_request_cpu = min(min(nodes[loc].available_cpu(), limitRange.cpu), microservices[ms_num].cpu_max_used);//受limit range限制
     this->cpu = random_probability(engine) * (max_request_cpu - microservices[ms_num].cpu_min) + microservices[ms_num].cpu_min;
 }
 
@@ -95,6 +95,7 @@ bool restrain(const vector<vector<Gene>> &Gen)
                 return false;
         }
     }
+    //cout<<"r1 passed"<<endl;
 
     for(int i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
     {
@@ -104,6 +105,7 @@ bool restrain(const vector<vector<Gene>> &Gen)
                 return false;
         }
     }
+    //cout<<"r2 passed"<<endl;
 
     resource total_used;
     for(int i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
@@ -118,6 +120,7 @@ bool restrain(const vector<vector<Gene>> &Gen)
                 return false;
         }
     }
+    //cout<<"r3 passed"<<endl;
 
     for(int i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
     {
@@ -129,6 +132,7 @@ bool restrain(const vector<vector<Gene>> &Gen)
                 return false;
         }
     }
+    //cout<<"r4 passed"<<endl;
 
     for(const auto & microservice : Gen)   // 所有微服务实例全部署
     {
@@ -138,6 +142,8 @@ bool restrain(const vector<vector<Gene>> &Gen)
                 return false;
         }
     }
+    //cout<<"r5 passed"<<endl;
+    return true;
 }
 
 vector<bool> restrain_count(const vector<vector<Gene>> &Gen)
@@ -297,7 +303,7 @@ bool init(vector<Node> &no,vector<MicroserviceData> &datas, int bw, ResourceQuot
         microservices[i].network_usage.transmit = datas[i].network_transmit/datas[i].httpRequestsCount;
         microservices[i].least_response_time = datas[i].leastResponseTime;
         microservices[i].cpu_usage_time = datas[i].cpuUsageTimeTotal/datas[i].httpRequestsCount;
-        microservices[i].cpu_max_used = datas[i].cpuUsageTimeTotal/datas[i].cpuTimeTotal;
+        microservices[i].cpu_max_used = datas[i].cpuUsageTimeTotal/datas[i].cpuTimeTotal*1000;
         microservices[i].http_requests_count = datas[i].httpRequestsCount;
 
         /**********************************************************************************
@@ -314,8 +320,16 @@ bool init(vector<Node> &no,vector<MicroserviceData> &datas, int bw, ResourceQuot
     if(!valid())
         return false;
 
+    clock_t begin,end;
+    cout<<"ready to initial chromsome"<<endl;
+    begin = clock();
     for(auto & chromsome : popcurrent)
+    {
         chromsome.init();
+        //cout<<"initialized"<<endl;
+    }
+    end = clock();
+    cout<<"chromsome initialization finished, time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
 
     return true;
 }
@@ -521,6 +535,8 @@ void elite()
     }
     if (elite_pos != -1)
         best_chrom = popcurrent[elite_pos];
+    if (elite_pos == -1)
+        cout<<"bad chromsome!"<<endl;
 
     auto it = fitness_rank.begin();
     for(int i=0; i<0.2*POPSIZE; i++,it++)
@@ -726,21 +742,59 @@ void aggregation()
 void test()
 {
     //todo initialize
-    vector<MicroserviceData> datas;
-    vector<Node> nos;
-    int bw=0;
-    ResourceQuota rq{};
-    LimitRange lr{};
+    vector<MicroserviceData> datas = {
+            {20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 1}
+    };
+    vector<Node> nos = {
+            {400, 2000, 8*1024, 16*1024},
+            {800, 2000, 10*1024, 16*1024},
+            {300, 1000, 4*1024, 8*1024}
+    };
+    int bw = 50*1024;  //50MB/s
+    ResourceQuota rq{10000, 5*1024};
+    LimitRange lr{800, 1024};
     init(nos, datas, bw, rq, lr);
     int iter = MAXGENES;
+    cout<<"test begin"<<endl;
+    clock_t begin,part_begin,part_end,end;
+    begin = clock();
     do {
+        cout<<"iter: "<<MAXGENES-iter+1<<endl;
+
+        part_begin = clock();
         eval();
+        part_end = clock();
+        cout<<"eval finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
         elite();
+        part_end = clock();
+        cout<<"elite finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
         select();
+        part_end = clock();
+        cout<<"select finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
         crossover();
+        part_end = clock();
+        cout<<"crossover finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
         mutate();
+        part_end = clock();
+        cout<<"mutate finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
         aggregation();
+        part_end = clock();
+        cout<<"aggregation finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        cout<<"iter: "<<MAXGENES-iter+1<<" finished"<<endl;
         iter--;
     } while (iter>0);
+    end = clock();
+    cout<<"test finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
     cout<<best_chrom.fitness<<endl;
 }
