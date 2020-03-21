@@ -19,7 +19,7 @@
 
 using namespace std;
 
-default_random_engine engine(time(NULL));
+default_random_engine engine(time(nullptr));
 uniform_real_distribution<double> random_probability(0., 1.);
 
 
@@ -38,9 +38,11 @@ int MS_TOTAL; //微服务数
 
 vector<Microservice_gene> output;     //返回结果
 
-vector<Chromsome> popcurrent(POPSIZE);    //当代种群
-Chromsome best_chrom;
-vector<Chromsome> popnext(POPSIZE);       //下代种群
+vector<Chromosome> popcurrent(POPSIZE);    //当代种群
+Chromosome best_chrom;
+vector<Chromosome> popnext(POPSIZE);       //下代种群
+double max_totalTime;
+int execution_entrance;
 
 void Gene::init(int ms_num)
 {
@@ -50,7 +52,7 @@ void Gene::init(int ms_num)
     this->cpu = random_probability(engine) * (max_request_cpu - microservices[ms_num].cpu_min) + microservices[ms_num].cpu_min;
 }
 
-void Chromsome::init()
+void Chromosome::init()
 {
     Gen = vector<vector<Gene>> (MS_TOTAL);
     for(int i=0; i<MS_TOTAL; i++)
@@ -69,6 +71,19 @@ void Chromsome::init()
             }
         }
     }while(!restrain(Gen));
+}
+
+void Chromosome::print() {
+    cout<<"Chrom fitness is: "<<this->fitness<<endl;
+    for(int i=0; i<Gen.size(); i++)
+    {
+        cout<<"microservice "<<i<<endl;
+        cout<<"memory request: "<<microservices[i].request_memory<<endl;
+        for(auto & container : Gen[i])
+        {
+            cout<<"    loc: "<<container.loc<<"  cpu: "<<container.cpu<<endl;
+        }
+    }
 }
 
 bool restrain(const vector<vector<Gene>> &Gen)
@@ -143,7 +158,44 @@ bool restrain(const vector<vector<Gene>> &Gen)
         }
     }
     //cout<<"r5 passed"<<endl;
+
+    double total_response_time = calServiceResponseTime(microservices, Gen, execution_entrance, 0);
+    if(total_response_time > max_totalTime)
+        return false;
+    //cout<<"restrain all passed"<<endl;
+
     return true;
+}
+
+double calServiceResponseTime(const vector<Microservice> & micro_services, const vector<vector<Gene>> & Gen, int entry, int depth)
+{
+    double response_time = 0;
+    double cpu_time=0;
+    for(const auto & container : Gen[entry])
+    {
+        Microservice microservice = micro_services[entry];
+        cpu_time = max(cpu_time, microservice.cpu_usage_time*microservice.cpu_max_used/container.cpu);
+    }
+    response_time += cpu_time;
+    if(depth%2 == 0)
+        response_time += micro_services[entry].network_usage.sum()/bandwidth;
+    for(auto microservice_num : micro_services[entry].next_microservices)
+    {
+        response_time += calServiceResponseTime(micro_services, Gen, microservice_num, depth+1);
+    }
+    return response_time;
+}
+
+double calBestResponseTime(const vector<Microservice> & micro_services, int entry, int depth)
+{
+    double response_time = micro_services[entry].cpu_usage_time;
+    if(depth%2 == 0)
+        response_time += micro_services[entry].network_usage.sum()/bandwidth;
+    for(auto microservice_num : micro_services[entry].next_microservices)
+    {
+        response_time += calBestResponseTime(micro_services, microservice_num, depth+1);
+    }
+    return response_time;
 }
 
 vector<bool> restrain_count(const vector<vector<Gene>> &Gen)
@@ -252,7 +304,7 @@ end:
     return ret;
 }
 
-double Network_usage::sum()
+double Network_usage::sum() const
 {
     return receive+transmit;
 }
@@ -267,14 +319,20 @@ bool valid()//条件的合法性
     for(int i=0;i<MS_TOTAL;i++)
     {
         double network = microservices[i].network_usage.sum();
-        if(network/bandwidth+microservices[i].cpu_usage_time>microservices[i].least_response_time)//最长响应时间无法满足
+        if(network/bandwidth+microservices[i].cpu_usage_time>microservices[i].max_response_time)//最长响应时间无法满足
+        {
+            cout<<"microservice "<<i<<" least time invalid"<<endl;
             return false;
+        }
 
         ms_cpu_total += microservices[i].cpu_min*microservices[i].replicas;
         ms_mem_total += microservices[i].request_memory*microservices[i].replicas;
     }
     if (ms_cpu_total > resourceQuota.cpu_total || ms_mem_total > resourceQuota.mem_total)//最低总量超出了resourceQuota
+    {
+        cout<<"resource quota invalid"<<endl;
         return false;
+    }
 
     double nodes_cpu_total=0;
     double nodes_mem_total=0;
@@ -283,10 +341,29 @@ bool valid()//条件的合法性
         nodes_cpu_total=nodes_cpu_total+nodes[i].available_cpu();
         nodes_mem_total=nodes_mem_total+nodes[i].available_mem();
     }
-    return !(ms_cpu_total > nodes_cpu_total || ms_mem_total > nodes_mem_total);
+    if(ms_cpu_total > nodes_cpu_total || ms_mem_total > nodes_mem_total)
+    {
+        cout<<"nodes resource invalid"<<endl;
+        return false;
+    }
+
+    vector<bool> route(microservices.size(), false);
+    vector<bool> checked(microservices.size(), false);
+    if(!checkLoopDependency(route, checked, microservices, execution_entrance))
+    {
+        cout<<"loop dependency found"<<endl;
+        return false;
+    }
+
+    if(calBestResponseTime(microservices, execution_entrance, 0) > max_totalTime)
+    {
+        cout<<"max_total_time invalid"<<endl;
+        return false;
+    }
+    return true;
 }
 
-bool init(vector<Node> &no,vector<MicroserviceData> &datas, int bw, ResourceQuota rq, LimitRange lr)
+bool init(vector<Node> &no,vector<MicroserviceData> &datas, double totalTimeRequire, int entrancePoint, int bw, ResourceQuota rq, LimitRange lr)
 {
     nodes = no;
     NODES_TOTAL = nodes.size();
@@ -296,22 +373,25 @@ bool init(vector<Node> &no,vector<MicroserviceData> &datas, int bw, ResourceQuot
     bandwidth = bw;
     resourceQuota = rq;
     limitRange = lr;
+    execution_entrance = entrancePoint;
+    max_totalTime = totalTimeRequire;
 
     for(int i=0; i<MS_TOTAL; i++)
     {
         microservices[i].network_usage.receive = datas[i].network_receive/datas[i].httpRequestsCount;
         microservices[i].network_usage.transmit = datas[i].network_transmit/datas[i].httpRequestsCount;
-        microservices[i].least_response_time = datas[i].leastResponseTime;
+        microservices[i].max_response_time = datas[i].leastResponseTime;
         microservices[i].cpu_usage_time = datas[i].cpuUsageTimeTotal/datas[i].httpRequestsCount;
         microservices[i].cpu_max_used = datas[i].cpuUsageTimeTotal/datas[i].cpuTimeTotal*1000;
         microservices[i].http_requests_count = datas[i].httpRequestsCount;
+        microservices[i].next_microservices = datas[i].microservicesToInvoke;
 
         /**********************************************************************************
          * cpu_usage_time*cpu_max_used/cpu_min+network/bandwidth <= least_response_time
          * cpu_usage_time*cpu_max_used/(least_response_time-network/bandwidth) <= cpu_min
          ***********************************************************************************/
         microservices[i].cpu_min = microservices[i].cpu_usage_time*microservices[i].cpu_max_used
-                                   /(microservices[i].least_response_time-microservices[i].network_usage.sum()/bandwidth);
+                                   /(microservices[i].max_response_time - microservices[i].network_usage.sum() / bandwidth);
         microservices[i].max_memory_usage = datas[i].maxMemoryUsage;
         microservices[i].replicas = datas[i].replica;
     }
@@ -494,6 +574,12 @@ double restrain_normalization(int i, const vector<vector<Gene>> & Gen)
                 value = 0;
             break;
         }
+        case 5: //不超过总响应时间
+        {
+            double total_time = calServiceResponseTime(microservices, Gen, execution_entrance, 0);
+            value = total_time > max_totalTime ? (total_time-max_totalTime)/max_totalTime : 0;
+            break;
+        }
         default:
             break;
     }
@@ -502,7 +588,7 @@ double restrain_normalization(int i, const vector<vector<Gene>> & Gen)
 
 void eval()
 {
-    vector<double> penaltyRate = {0.001, 0.001, 0.001, 0.001, 0.001};
+    vector<double> penaltyRate = {0.001, 0.001, 0.001, 0.001, 0.001, 0.001};
     for(auto & chromsome : popcurrent)
     {
         double obj = func_obj(chromsome.Gen);
@@ -536,7 +622,7 @@ void elite()
     if (elite_pos != -1)
         best_chrom = popcurrent[elite_pos];
     if (elite_pos == -1)
-        cout<<"bad chromsome!"<<endl;
+        cout<<"bad chromosome!"<<endl;
 
     auto it = fitness_rank.begin();
     for(int i=0; i<0.2*POPSIZE; i++,it++)
@@ -655,7 +741,7 @@ void mutate()
                         }
                         if (container.cpu < microservices[i].cpu_min || container.cpu > microservices[i].cpu_max_used)
                         {
-                            double max_request_cpu = min(nodes[container.loc].available_cpu(), limitRange.cpu);//受limit range限制
+                            double max_request_cpu = min(min(nodes[container.loc].available_cpu(), limitRange.cpu), microservices[i].cpu_max_used);//受limit range限制
                             container.cpu = random_probability(engine) * (max_request_cpu - microservices[i].cpu_min) + microservices[i].cpu_min;
                         }
                     }
@@ -743,17 +829,24 @@ void test()
 {
     //todo initialize
     vector<MicroserviceData> datas = {
-            {20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 1}
+            {20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 1, {1}},
+            {100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5}
     };
     vector<Node> nos = {
-            {400, 2000, 8*1024, 16*1024},
-            {800, 2000, 10*1024, 16*1024},
+            {800, 2000, 8*1024, 16*1024},
+            {1200, 2000, 10*1024, 16*1024},
             {300, 1000, 4*1024, 8*1024}
     };
     int bw = 50*1024;  //50MB/s
     ResourceQuota rq{10000, 5*1024};
     LimitRange lr{800, 1024};
-    init(nos, datas, bw, rq, lr);
+    double total = 0.8;
+    int entrance = 0;
+    if (!init(nos, datas, total, entrance, bw, rq, lr))
+    {
+        cout<<"init failed"<<endl;
+        return;
+    }
     int iter = MAXGENES;
     cout<<"test begin"<<endl;
     clock_t begin,part_begin,part_end,end;
@@ -796,5 +889,23 @@ void test()
     } while (iter>0);
     end = clock();
     cout<<"test finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
-    cout<<best_chrom.fitness<<endl;
+    best_chrom.print();
+}
+
+bool checkLoopDependency(vector<bool> &route, vector<bool> &checked, vector<Microservice> & ms,
+                         int entrance)
+{
+    if(checked[entrance])
+        return true;
+    if(route[entrance])
+        return false;
+    route[entrance] = true;
+    for(auto & nextService : ms[entrance].next_microservices)
+    {
+        if(!checkLoopDependency(route, checked, ms, nextService))
+            return false;
+    }
+    route[entrance] = false;
+    checked[entrance] = true;
+    return true;
 }
