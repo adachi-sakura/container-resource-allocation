@@ -52,8 +52,10 @@ struct Chromosome
 struct Node
 {
     double current_cpu;
+    double allocatable_cpu;
     double sum_cpu;
     double current_mem;
+    double allocatable_mem;
     double sum_mem;
     double available_cpu();
     double available_mem();

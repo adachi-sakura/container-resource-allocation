@@ -309,8 +309,8 @@ double Network_usage::sum() const
     return receive+transmit;
 }
 
-double Node::available_cpu() { return sum_cpu-current_cpu;}
-double Node::available_mem() { return sum_mem-current_mem;}
+double Node::available_cpu() { return allocatable_cpu;}
+double Node::available_mem() { return allocatable_mem;}
 
 bool valid()//条件的合法性
 {
@@ -808,11 +808,7 @@ void aggregation()
                     resource new_resource;
                     new_resource.cpu = resource_usages[migrate_to].cpu + container.cpu;
                     new_resource.mem = resource_usages[migrate_to].mem + microservices[microservice_num].request_memory;
-                    utility new_utility{
-                        .cpu = (new_resource.cpu+nodes[migrate_to].current_cpu)/nodes[migrate_to].sum_cpu,
-                        .mem = (new_resource.mem+nodes[migrate_to].current_mem)/nodes[migrate_to].sum_mem
-                    };
-                    if (new_utility.cpu <= 1 && new_utility.mem <= 1)   //迁移合法
+                    if (new_resource.cpu <= nodes[migrate_to].allocatable_cpu && new_resource.mem <= nodes[migrate_to].allocatable_mem)   //迁移合法
                     {
                         resource_usages[migrate_to] = new_resource;
                         resource_usages[migrate_from].cpu -= container.cpu;
@@ -829,19 +825,22 @@ void test()
 {
     //todo initialize
     vector<MicroserviceData> datas = {
-            {20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 1, {1}},
+            {20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 0.5, {1}},
             {100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5}
+            //{30*10240, 1*10240, 30*60*1.2, 30*60, 10240, 50, 2, 0.8}
     };
     vector<Node> nos = {
-            {800, 2000, 8*1024, 16*1024},
-            {1200, 2000, 10*1024, 16*1024},
-            {300, 1000, 4*1024, 8*1024}
+            {300, 800, 2000, 5*1024, 8*1024, 16*1024},
+            {1200, 800, 2000, 10*1024, 6*1024,16*1024},
+            {300, 700, 1000, 4*1024, 4*1024, 8*1024}
     };
     int bw = 50*1024;  //50MB/s
     ResourceQuota rq{10000, 5*1024};
     LimitRange lr{800, 1024};
     double total = 0.8;
     int entrance = 0;
+    clock_t begin,part_begin,part_end,end;
+    begin = clock();
     if (!init(nos, datas, total, entrance, bw, rq, lr))
     {
         cout<<"init failed"<<endl;
@@ -849,8 +848,6 @@ void test()
     }
     int iter = MAXGENES;
     cout<<"test begin"<<endl;
-    clock_t begin,part_begin,part_end,end;
-    begin = clock();
     do {
         cout<<"iter: "<<MAXGENES-iter+1<<endl;
 
