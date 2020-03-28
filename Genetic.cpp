@@ -823,7 +823,6 @@ void aggregation()
 
 void test()
 {
-    //todo initialize
     vector<MicroserviceData> datas = {
             {20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 0.5, {1}},
             {100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5}
@@ -905,4 +904,70 @@ bool checkLoopDependency(vector<bool> &route, vector<bool> &checked, vector<Micr
     route[entrance] = false;
     checked[entrance] = true;
     return true;
+}
+
+vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
+{
+    output = vector<Microservice_gene>(MS_TOTAL);
+    vector<MicroserviceData> datas = params.datas;
+    vector<Node> nos = params.nodes;
+    int bw = params.bandwidth;
+    ResourceQuota rq = params.rq;
+    LimitRange lr = params.lm;
+    double total = params.totalTimeRequired;
+    int entrance = params.entrancePoint;
+    clock_t begin,part_begin,part_end,end;
+    begin = clock();
+    if (!init(nos, datas, total, entrance, bw, rq, lr))
+    {
+        error = "initial failed";
+        return output;
+    }
+    int iter = MAXGENES;
+    cout<<"begin"<<endl;
+    do {
+        cout<<"iter: "<<MAXGENES-iter+1<<endl;
+
+        part_begin = clock();
+        eval();
+        part_end = clock();
+        cout<<"eval finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
+        elite();
+        part_end = clock();
+        cout<<"elite finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
+        select();
+        part_end = clock();
+        cout<<"select finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
+        crossover();
+        part_end = clock();
+        cout<<"crossover finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
+        mutate();
+        part_end = clock();
+        cout<<"mutate finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        part_begin = clock();
+        aggregation();
+        part_end = clock();
+        cout<<"aggregation finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
+
+        cout<<"iter: "<<MAXGENES-iter+1<<" finished"<<endl;
+        iter--;
+    } while (iter>0);
+    end = clock();
+    cout<<"finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
+
+    for(int i=0; i<output.size(); i++)
+    {
+        output[i].Gen = best_chrom.Gen[i];
+        output[i].request_memory = microservices[i].request_memory;
+    }
+    return output;
 }

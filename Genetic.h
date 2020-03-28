@@ -5,6 +5,7 @@
 #define GENERIC_ALGORITHM_GENETIC_H
 
 #include <vector>
+#include <string>
 
 #define POPSIZE  200             //个体数
 
@@ -36,7 +37,7 @@ struct Gene
 struct Microservice_gene
 {
     std::vector<Gene> Gen;
-    std::vector<double> request_memory;
+    double request_memory;
 };
 
 struct Chromosome
@@ -95,6 +96,17 @@ struct MicroserviceData
     std::vector<int> microservicesToInvoke;
 };
 
+struct AlgorithmParameters
+{
+    ResourceQuota rq;
+    LimitRange lm;
+    std::vector<Node> nodes;
+    std::vector<MicroserviceData> datas;
+    int entrancePoint;
+    int bandwidth;
+    double totalTimeRequired;
+};
+
 void calculate_mem_request();//根据历史最大值计算申请量
 bool init(std::vector<Node> &no,std::vector<MicroserviceData> &datas, double totalTimeRequire, int entrancePoint, int bw, ResourceQuota rq, LimitRange lr);
 bool valid();//条件的合法性
@@ -112,4 +124,5 @@ void test();
 bool checkLoopDependency(std::vector<bool> &route, std::vector<bool> & checked, std::vector<Microservice> & microservices, int entrance);
 double calServiceResponseTime(const std::vector<Microservice> & micro_services, const std::vector<std::vector<Gene>> & Gen, int entry, int depth);
 double calBestResponseTime(const std::vector<Microservice> & micro_services, int entry, int depth);
+std::vector<Microservice_gene>& run(AlgorithmParameters &, std::string &);
 #endif //GENERIC_ALGORITHM_GENETIC_H
