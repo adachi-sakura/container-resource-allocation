@@ -908,7 +908,7 @@ bool checkLoopDependency(vector<bool> &route, vector<bool> &checked, vector<Micr
 
 vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
 {
-    output = vector<Microservice_gene>(MS_TOTAL);
+
     vector<MicroserviceData> datas = params.datas;
     vector<Node> nos = params.nodes;
     int bw = params.bandwidth;
@@ -923,6 +923,7 @@ vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
         error = "initial failed";
         return output;
     }
+    output = vector<Microservice_gene>(MS_TOTAL);
     int iter = MAXGENES;
     cout<<"begin"<<endl;
     do {
