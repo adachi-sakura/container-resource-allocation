@@ -1,0 +1,7 @@
+CMakeLists.txt
+Dockerfile
+server
+cmake-build-debug
+.git
+.idea
+.gitignore
