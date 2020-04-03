@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include "Type.h"
 
 #define POPSIZE  200             //个体数
 
@@ -14,6 +15,8 @@
 #define PXOVER  0.94            //交叉概率
 
 #define PMUTATION 0.05          //变异概率
+
+
 
 struct ResourceQuota
 {
@@ -34,10 +37,17 @@ struct Gene
     void init(int ms_num);
 };
 
-struct Microservice_gene
+struct Microservice_gene: SerializableJSONObject
 {
-    std::vector<Gene> Gen;
+    std::string name;
+    struct allocation
+    {
+        std::string loc;
+        double cpu;
+    };
+    std::vector<allocation> Gen;
     double request_memory;
+    jsonxx::Object object() override ;
 };
 
 struct Chromosome
@@ -52,6 +62,7 @@ struct Chromosome
 
 struct Node
 {
+    std::string name;
     double current_cpu;
     double allocatable_cpu;
     double sum_cpu;
@@ -71,6 +82,7 @@ struct Network_usage
 
 struct Microservice
 {
+    std::string name;
     Network_usage network_usage; //每个请求使用网络流量
     double max_response_time; //最长响应时间
     double cpu_usage_time;  //单条指令占用的cpu时间
@@ -85,6 +97,7 @@ struct Microservice
 
 struct MicroserviceData
 {
+    std::string name;
     int network_receive;
     int network_transmit;
     double cpuUsageTimeTotal;
@@ -96,7 +109,7 @@ struct MicroserviceData
     std::vector<int> microservicesToInvoke;
 };
 
-struct AlgorithmParameters
+struct AlgorithmParameters: SerializableJSONObject
 {
     ResourceQuota rq;
     LimitRange lm;
@@ -105,6 +118,9 @@ struct AlgorithmParameters
     int entrancePoint;
     int bandwidth;
     double totalTimeRequired;
+    void unserialize(const std::string &) override ;
+    AlgorithmParameters(std::string &);
+    AlgorithmParameters()= default;
 };
 
 void calculate_mem_request();//根据历史最大值计算申请量
