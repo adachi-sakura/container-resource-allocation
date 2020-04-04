@@ -853,37 +853,18 @@ void test()
     do {
         cout<<"iter: "<<MAXGENES-iter+1<<endl;
 
-        part_begin = clock();
         eval();
-        part_end = clock();
-        cout<<"eval finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         elite();
-        part_end = clock();
-        cout<<"elite finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         select();
-        part_end = clock();
-        cout<<"select finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         crossover();
-        part_end = clock();
-        cout<<"crossover finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         mutate();
-        part_end = clock();
-        cout<<"mutate finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         aggregation();
-        part_end = clock();
-        cout<<"aggregation finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        cout<<"iter: "<<MAXGENES-iter+1<<" finished"<<endl;
         iter--;
     } while (iter>0);
     end = clock();
@@ -932,37 +913,18 @@ vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
     do {
         cout<<"iter: "<<MAXGENES-iter+1<<endl;
 
-        part_begin = clock();
         eval();
-        part_end = clock();
-        cout<<"eval finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         elite();
-        part_end = clock();
-        cout<<"elite finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         select();
-        part_end = clock();
-        cout<<"select finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         crossover();
-        part_end = clock();
-        cout<<"crossover finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         mutate();
-        part_end = clock();
-        cout<<"mutate finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        part_begin = clock();
         aggregation();
-        part_end = clock();
-        cout<<"aggregation finished, time elapsed: "<<(double)(part_end-part_begin)/CLOCKS_PER_SEC<<endl;
 
-        cout<<"iter: "<<MAXGENES-iter+1<<" finished"<<endl;
         iter--;
     } while (iter>0);
     end = clock();
