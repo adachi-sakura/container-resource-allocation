@@ -730,7 +730,7 @@ void mutate()
                         {
                             int prev_loc = container.loc;
                             container.loc = random_nodes(engine);
-                            double scaled_cpu = container.cpu/nodes[prev_loc].available_cpu()*nodes[container.loc].available_cpu();
+                            double scaled_cpu = container.cpu/(nodes[prev_loc].available_cpu()+container.cpu)*nodes[container.loc].available_cpu();
                             scaled_cpu = max(microservices[i].cpu_min, scaled_cpu);
                             scaled_cpu = min(microservices[i].cpu_max_used, scaled_cpu);
                             container.cpu = scaled_cpu;
