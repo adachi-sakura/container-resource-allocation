@@ -554,7 +554,7 @@ double restrain_normalization(int i, const vector<vector<Gene>> & Gen)
                     mem_excess_total += max(microservices[i].request_memory-limitRange.mem, 0.);
                 }
             }
-            value = (cpu_excess_total/limitRange.cpu+mem_excess_total/limitRange.mem)/container_count;
+            value = (0.5*cpu_excess_total/limitRange.cpu+0.5*mem_excess_total/limitRange.mem)/container_count;
             break;
         }
         case 4: //微服务实例全部署
