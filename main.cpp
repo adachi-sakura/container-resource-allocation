@@ -8,7 +8,10 @@ using namespace std;
 int main() {
     //test();
     auto params = getDefaultParameters();
+    testRoundRobin(params);
     testRandom(params);
+    testKubernetes(params);
+    testGenetic(params);
     return 0;
 //    crow::SimpleApp app;
 //    CROW_ROUTE(app, "/ping").methods("GET"_method)([](){

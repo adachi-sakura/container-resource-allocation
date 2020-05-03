@@ -9,6 +9,14 @@
 
 extern Chromosome best_chrom;
 
+#define MAXNODESCORE 100
+
+struct Pod
+{
+    double cpu;
+    double mem;
+};
+
 void testIteration(AlgorithmParameters&);
 void testMutation(AlgorithmParameters&);
 void testCrossOver(AlgorithmParameters&);
@@ -16,6 +24,8 @@ void testElite(AlgorithmParameters&);
 void testPenalty(AlgorithmParameters&);
 void testRoundRobin(AlgorithmParameters&);
 void testRandom(AlgorithmParameters&);
+void testKubernetes(AlgorithmParameters&);
+void testGenetic(AlgorithmParameters&);
 AlgorithmParameters getDefaultParameters();
 
 #endif //GENERIC_ALGORITHM_TEST_H

@@ -7,6 +7,7 @@
 #include<vector>
 #include<random>
 #include<ctime>
+#include <map>
 using namespace std;
 
 AlgorithmParameters getDefaultParameters()
@@ -154,11 +155,7 @@ void testPenalty(AlgorithmParameters& params)
     file.close();
 }
 
-struct Pod
-{
-    double cpu;
-    double mem;
-};
+
 
 vector<Pod> standardPod(AlgorithmParameters& params)
 {
@@ -250,5 +247,121 @@ retry:
     file.close();
 }
 
+vector<int> calcLeastAllocated(Pod& pod, vector<Node>& nodes)
+{
+    vector<int> ret;
+    for(auto & node : nodes)
+    {
+        auto cpuRatio = (node.allocatable_cpu-pod.cpu)*MAXNODESCORE/node.sum_cpu;
+        auto memRatio = (node.allocatable_mem-pod.mem)*MAXNODESCORE/node.sum_mem;
+        ret.push_back((cpuRatio+memRatio)/2);
+    }
+    return ret;
+}
 
+vector<int> calcBalancedAllocation(Pod& pod, vector<Node>& nodes)
+{
+    vector<int> ret;
+    for(auto & node: nodes)
+    {
+        auto cpuFraction = (node.sum_cpu-node.allocatable_cpu+pod.cpu)/node.sum_cpu;
+        auto memFraction = (node.sum_mem-node.allocatable_mem+pod.mem)/node.sum_mem;
+        auto mean = (cpuFraction+memFraction)/2;
+        auto variance = ((cpuFraction-mean)*(cpuFraction-mean)+(memFraction-mean)*(memFraction-mean))/2;
+        ret.push_back((1-variance)*MAXNODESCORE);
+    }
+    return ret;
+}
+
+vector<int> calcPodTopology(vector<Node>& nodes, vector<int>& locs)
+{
+    vector<int> distribution(nodes.size(),0);
+    for(auto loc: locs)
+        distribution[loc]++;
+    int maxCount=0;
+    for(auto cnt : distribution)
+        maxCount = cnt > maxCount ? cnt:maxCount;
+    vector<int> ret;
+    for(auto cnt : distribution)
+    {
+        auto score = MAXNODESCORE;
+        if (maxCount > 0)
+        {
+            score = MAXNODESCORE*(maxCount-cnt)/double(maxCount);
+        }
+        ret.push_back(score);
+    }
+    return ret;
+
+}
+
+template<typename T>
+vector<T> totalScore(initializer_list<vector<T>>& l)
+{
+    vector<int> ret;
+    for(auto item : l)
+    {
+        if(ret.size() > item.size())
+            throw("length invalid");
+        if(ret.size() < item.size())
+            ret.resize(item.size());
+        for(int i=0 ; i<item.size(); i++)
+        {
+            ret[i] += item[i];
+        }
+    }
+    return ret;
+}
+
+void testKubernetes(AlgorithmParameters& params)
+{
+    auto pods = standardPod(params);
+    auto ms_total = params.datas.size();
+    auto nodes = params.nodes;
+    for(int i=0; i<ms_total; i++)
+    {
+        auto & pod = pods[i];
+        vector<int> locs(params.datas[i].replica,0);
+        for(int j=0; j<params.datas[i].replica; j++)
+        {
+            auto score1 = calcLeastAllocated(pod, nodes);
+            auto score2 = calcBalancedAllocation(pod, nodes);
+            auto score3 = calcPodTopology(nodes, locs);
+            auto scoreList = {score1, score2, score3};
+            auto sumScore = totalScore(scoreList);
+            map<int,int> rankedScoreToLocMap;
+            for(int n = 0 ;n<sumScore.size(); n++)
+            {
+                rankedScoreToLocMap.insert(pair<int,int>(sumScore[i], i));
+            }
+            for(auto it=rankedScoreToLocMap.begin();;)
+            {
+                int loc = it->second;
+                if(nodes[loc].allocate(pod.cpu, pod.mem))
+                    break;
+                else if(++it == rankedScoreToLocMap.end())
+                    throw("not enough capacity");
+            }
+        }
+    }
+    auto fitness = calcFitness(nodes, params.nodes);
+    fstream file;
+    file.open("output/algorithm.csv", ios::app);
+    file<<"Kubernetes"<<" "<<fitness<<endl;
+    file.close();
+}
+
+void testGenetic(AlgorithmParameters& params)
+{
+    if(!init(params.nodes, params.datas, params.totalTimeRequired, params.entrancePoint, params.bandwidth, params.rq, params.lm))
+    {
+        cout<<"init failed"<<endl;
+        return;
+    }
+    auto fitnesses = iterate();
+    fstream file;
+    file.open("output/algorithm.csv", ios::app);
+    file<<"Genetic"<<" "<<func_obj(best_chrom.Gen)<<endl;
+    file.close();
+}
 
