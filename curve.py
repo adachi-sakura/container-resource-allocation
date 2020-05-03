@@ -4,7 +4,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = ""
 if len(sys.argv) < 2:
     print("filepath need")
     exit()
