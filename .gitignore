@@ -1,3 +1,4 @@
 /cmake*
 CMakeLists.txt
 /.idea
+/output

@@ -3,12 +3,11 @@
 //
 
 #include "Genetic.h"
-#include "include/jsonxx.h"
+//#include "include/jsonxx.h"
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <ctime>
 #include <ctime>
 #include <cstring>
 #include <limits>
@@ -19,14 +18,14 @@
 #include <random>
 
 using namespace std;
-using namespace jsonxx;
+//using namespace jsonxx;
 
 default_random_engine engine(time(nullptr));
 uniform_real_distribution<double> random_probability(0., 1.);
 
 
 const double BUMPUPRATIO = 1.2;
-const int MINBUMPUP = 100;  //100MB
+const int MINBUMPUP = 50;  //50MB
 int bandwidth;    //带宽
 ResourceQuota resourceQuota;
 LimitRange limitRange;
@@ -907,130 +906,131 @@ bool checkLoopDependency(vector<bool> &route, vector<bool> &checked, vector<Micr
     checked[entrance] = true;
     return true;
 }
-
-vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
-{
-
-    vector<MicroserviceData> datas = params.datas;
-    vector<Node> nos = params.nodes;
-    int bw = params.bandwidth;
-    ResourceQuota rq = params.rq;
-    LimitRange lr = params.lm;
-    double total = params.totalTimeRequired;
-    int entrance = params.entrancePoint;
-    clock_t begin,part_begin,part_end,end;
-    begin = clock();
-    if (!init(nos, datas, total, entrance, bw, rq, lr))
-    {
-        error = "initial failed";
-        return output;
-    }
-    output = vector<Microservice_gene>(MS_TOTAL);
-    int iter = MAXGENES;
-    cout<<"begin"<<endl;
-    do {
-        cout<<"iter: "<<MAXGENES-iter+1<<endl;
-
-        eval();
-
-        elite();
-
-        select();
-
-        crossover();
-
-        mutate();
-
-        aggregation();
-
-        iter--;
-    } while (iter>0);
-    end = clock();
-    cout<<"finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
-
-    for(int i=0; i<output.size(); i++)
-    {
-        output[i].name = microservices[i].name;
-        for(auto & container : best_chrom.Gen[i])
-        {
-            Microservice_gene::allocation alloc;
-            alloc.loc = nodes[container.loc].name;
-            alloc.cpu = container.cpu;
-            output[i].Gen.push_back(alloc);
-        }
-        output[i].request_memory = microservices[i].request_memory;
-    }
-    return output;
-}
-
-
-void AlgorithmParameters::unserialize(const std::string & json)
-{
-    jsonxx::Object o;
-    o.parse(json);
-    this->rq.cpu_total = o.get<Number>("cpu_rq_total");
-    this->rq.mem_total = o.get<Number>("mem_rq_total");
-    this->lm.cpu = o.get<Number>("cpu_lm");
-    this->lm.mem = o.get<Number>("mem_lm");
-    Array nodes = o.get<Array>("nodes");
-    for(int i=0; i<nodes.size(); i++)
-    {
-        Object node = nodes.get<Object>(i);
-        Node no;
-        no.name = node.get<String>("name");
-        no.current_cpu = node.get<Number>("current_cpu");
-        no.allocatable_cpu = node.get<Number>("allocatable_cpu");
-        no.sum_cpu = node.get<Number>("sum_cpu");
-        no.current_mem = node.get<Number>("current_mem");
-        no.allocatable_mem = node.get<Number>("allocatable_mem");
-        no.sum_mem = node.get<Number>("sum_mem");
-        this->nodes.push_back(no);
-    }
-    Array microservices = o.get<Array>("datas");
-    for(int i=0; i<microservices.size(); i++)
-    {
-        Object microservice = microservices.get<Object>(i);
-        MicroserviceData ms;
-        ms.name = microservice.get<String>("name");
-        ms.network_receive = microservice.get<Number>("receive");
-        ms.network_transmit = microservice.get<Number>("transmit");
-        ms.cpuUsageTimeTotal = microservice.get<Number>("cpuUsageTime");
-        ms.cpuTimeTotal = microservice.get<Number>("cpuTimeTotal");
-        ms.httpRequestsCount = microservice.get<Number>("httpRequestCount");
-        ms.maxMemoryUsage = microservice.get<Number>("maxMemoryUsage");
-        ms.replica = microservice.get<Number>("replicas");
-        ms.leastResponseTime = microservice.get<Number>("leastResponseTime");
-
-        Array invokeServices = microservice.get<Array>("microservicesToInvoke");
-        for(int j=0; j<invokeServices.size(); j++)
-        {
-            auto invokeService = invokeServices.get<Number>(j);
-            ms.microservicesToInvoke.push_back(invokeService);
-        }
-        this->datas.push_back(ms);
-    }
-    this->entrancePoint = o.get<Number>("entrancePoint");
-    this->bandwidth = o.get<Number>("bandwidth");
-    this->totalTimeRequired = o.get<Number>("totalTimeRequired");
-}
-
-AlgorithmParameters::AlgorithmParameters(std::string &json)
-{
-    unserialize(json);
-}
-
-jsonxx::Object Microservice_gene::object() {
-    Object ms_gene;
-    ms_gene << "name" << this->name;
-    Array genes;
-    for(auto & container : this->Gen)
-    {
-        Object container_gene;
-        container_gene << "loc" << container.loc;
-        container_gene << "cpu" << container.cpu;
-        genes << container_gene;
-    }
-    ms_gene << "containers" << genes;
-    ms_gene << "requestMemory" << this->request_memory;
-    return ms_gene;
-}
+//
+//vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
+//{
+//
+//    vector<MicroserviceData> datas = params.datas;
+//    vector<Node> nos = params.nodes;
+//    int bw = params.bandwidth;
+//    ResourceQuota rq = params.rq;
+//    LimitRange lr = params.lm;
+//    double total = params.totalTimeRequired;
+//    int entrance = params.entrancePoint;
+//    clock_t begin,part_begin,part_end,end;
+//    begin = clock();
+//    if (!init(nos, datas, total, entrance, bw, rq, lr))
+//    {
+//        error = "initial failed";
+//        return output;
+//    }
+//    output = vector<Microservice_gene>(MS_TOTAL);
+//    int iter = MAXGENES;
+//    cout<<"begin"<<endl;
+//    do {
+//        cout<<"iter: "<<MAXGENES-iter+1<<endl;
+//
+//        eval();
+//
+//        elite();
+//
+//        select();
+//
+//        crossover();
+//
+//        mutate();
+//
+//        aggregation();
+//
+//        iter--;
+//        cout<<best_chrom.fitness<<endl;
+//    } while (iter>0);
+//    end = clock();
+//    cout<<"finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
+//
+//    for(int i=0; i<output.size(); i++)
+//    {
+//        output[i].name = microservices[i].name;
+//        for(auto & container : best_chrom.Gen[i])
+//        {
+//            Microservice_gene::allocation alloc;
+//            alloc.loc = nodes[container.loc].name;
+//            alloc.cpu = container.cpu;
+//            output[i].Gen.push_back(alloc);
+//        }
+//        output[i].request_memory = microservices[i].request_memory;
+//    }
+//    return output;
+//}
+//
+//
+//void AlgorithmParameters::unserialize(const std::string & json)
+//{
+//    jsonxx::Object o;
+//    o.parse(json);
+//    this->rq.cpu_total = o.get<Number>("cpu_rq_total");
+//    this->rq.mem_total = o.get<Number>("mem_rq_total");
+//    this->lm.cpu = o.get<Number>("cpu_lm");
+//    this->lm.mem = o.get<Number>("mem_lm");
+//    Array nodes = o.get<Array>("nodes");
+//    for(int i=0; i<nodes.size(); i++)
+//    {
+//        Object node = nodes.get<Object>(i);
+//        Node no;
+//        no.name = node.get<String>("name");
+//        no.current_cpu = node.get<Number>("current_cpu");
+//        no.allocatable_cpu = node.get<Number>("allocatable_cpu");
+//        no.sum_cpu = node.get<Number>("sum_cpu");
+//        no.current_mem = node.get<Number>("current_mem");
+//        no.allocatable_mem = node.get<Number>("allocatable_mem");
+//        no.sum_mem = node.get<Number>("sum_mem");
+//        this->nodes.push_back(no);
+//    }
+//    Array microservices = o.get<Array>("datas");
+//    for(int i=0; i<microservices.size(); i++)
+//    {
+//        Object microservice = microservices.get<Object>(i);
+//        MicroserviceData ms;
+//        ms.name = microservice.get<String>("name");
+//        ms.network_receive = microservice.get<Number>("receive");
+//        ms.network_transmit = microservice.get<Number>("transmit");
+//        ms.cpuUsageTimeTotal = microservice.get<Number>("cpuUsageTime");
+//        ms.cpuTimeTotal = microservice.get<Number>("cpuTimeTotal");
+//        ms.httpRequestsCount = microservice.get<Number>("httpRequestCount");
+//        ms.maxMemoryUsage = microservice.get<Number>("maxMemoryUsage");
+//        ms.replica = microservice.get<Number>("replicas");
+//        ms.leastResponseTime = microservice.get<Number>("leastResponseTime");
+//
+//        Array invokeServices = microservice.get<Array>("microservicesToInvoke");
+//        for(int j=0; j<invokeServices.size(); j++)
+//        {
+//            auto invokeService = invokeServices.get<Number>(j);
+//            ms.microservicesToInvoke.push_back(invokeService);
+//        }
+//        this->datas.push_back(ms);
+//    }
+//    this->entrancePoint = o.get<Number>("entrancePoint");
+//    this->bandwidth = o.get<Number>("bandwidth");
+//    this->totalTimeRequired = o.get<Number>("totalTimeRequired");
+//}
+//
+//AlgorithmParameters::AlgorithmParameters(std::string &json)
+//{
+//    unserialize(json);
+//}
+//
+//jsonxx::Object Microservice_gene::object() {
+//    Object ms_gene;
+//    ms_gene << "name" << this->name;
+//    Array genes;
+//    for(auto & container : this->Gen)
+//    {
+//        Object container_gene;
+//        container_gene << "loc" << container.loc;
+//        container_gene << "cpu" << container.cpu;
+//        genes << container_gene;
+//    }
+//    ms_gene << "containers" << genes;
+//    ms_gene << "requestMemory" << this->request_memory;
+//    return ms_gene;
+//}

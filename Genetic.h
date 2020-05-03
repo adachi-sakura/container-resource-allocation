@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <string>
-#include "Type.h"
+//#include "Type.h"
 
 #define POPSIZE  200             //个体数
 
@@ -40,7 +40,7 @@ struct Gene
     void init(int ms_num);
 };
 
-struct Microservice_gene: SerializableJSONObject
+struct Microservice_gene//: SerializableJSONObject
 {
     std::string name;
     struct allocation
@@ -50,7 +50,7 @@ struct Microservice_gene: SerializableJSONObject
     };
     std::vector<allocation> Gen;
     double request_memory;
-    jsonxx::Object object() override ;
+    //jsonxx::Object object() override ;
 };
 
 struct Chromosome
@@ -114,7 +114,7 @@ struct MicroserviceData
     std::vector<int> microservicesToInvoke;
 };
 
-struct AlgorithmParameters: SerializableJSONObject
+struct AlgorithmParameters//: SerializableJSONObject
 {
     ResourceQuota rq;
     LimitRange lm;
@@ -123,8 +123,8 @@ struct AlgorithmParameters: SerializableJSONObject
     int entrancePoint;
     int bandwidth;
     double totalTimeRequired;
-    void unserialize(const std::string &) override ;
-    AlgorithmParameters(std::string &);
+    //void unserialize(const std::string &) override ;
+    //AlgorithmParameters(std::string &);
     AlgorithmParameters()= default;
 };
 
@@ -146,4 +146,10 @@ bool checkLoopDependency(std::vector<bool> &route, std::vector<bool> & checked, 
 double calServiceResponseTime(const std::vector<Microservice> & micro_services, const std::vector<std::vector<Gene>> & Gen, int entry, int depth);
 double calBestResponseTime(const std::vector<Microservice> & micro_services, int entry, int depth);
 std::vector<Microservice_gene>& run(AlgorithmParameters &, std::string &);
+//AlgorithmParameters getDefaultParameters();
+//void testIteration(AlgorithmParameters&);
+//void testMutation(AlgorithmParameters&);
+//void testCrossOver(AlgorithmParameters&);
+//void testElite(AlgorithmParameters&);
+//void testPenalty(AlgorithmParameters&);
 #endif //GENERIC_ALGORITHM_GENETIC_H
