@@ -10,13 +10,16 @@
 
 #define POPSIZE  200             //个体数
 
-#define MAXGENES  100            //最大迭代次数
+#define MAXGENES  200            //最大迭代次数
 
-#define PXOVER  0.94            //交叉概率
+#define PXOVER  0.9            //交叉概率
 
-#define PMUTATION 0.05          //变异概率
+#define PMUTATION 0.25          //变异概率
 
+#define ELITERATE 0.3
 
+#define RESTRAINNUM 6
+#define PENALTYRATE 0.1
 
 struct ResourceQuota
 {
@@ -71,6 +74,8 @@ struct Node
     double sum_mem;
     double available_cpu();
     double available_mem();
+    bool is_available(double, double);
+    bool allocate(double, double);
 };
 
 struct Network_usage

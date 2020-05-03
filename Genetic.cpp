@@ -313,6 +313,21 @@ double Network_usage::sum() const
 
 double Node::available_cpu() { return allocatable_cpu;}
 double Node::available_mem() { return allocatable_mem;}
+bool Node::is_available(double requested_cpu, double requested_mem)
+{
+    return requested_cpu<= available_cpu() && requested_mem <= available_mem();
+}
+
+bool Node::allocate(double requested_cpu, double requested_mem)
+{
+    if(!is_available(requested_cpu, requested_mem))
+        return false;
+    allocatable_cpu -= requested_cpu;
+    allocatable_mem -= requested_mem;
+    current_cpu += requested_cpu;
+    current_mem += requested_mem;
+    return true;
+}
 
 bool valid()//条件的合法性
 {
@@ -591,7 +606,7 @@ double restrain_normalization(int i, const vector<vector<Gene>> & Gen)
 
 void eval()
 {
-    vector<double> penaltyRate = {0.001, 0.001, 0.001, 0.001, 0.001, 0.001};
+    vector<double> penaltyRate = vector<double>(RESTRAINNUM, PENALTYRATE);
     for(auto & chromsome : popcurrent)
     {
         double obj = func_obj(chromsome.Gen);
@@ -628,7 +643,7 @@ void elite()
         cout<<"bad chromosome!"<<endl;
 
     auto it = fitness_rank.begin();
-    for(int i=0; i<0.2*POPSIZE; i++,it++)
+    for(int i=0; i<ELITERATE*POPSIZE; i++,it++)
     {
         popcurrent[it->second] = best_chrom;
     }
@@ -829,12 +844,15 @@ void test()
     vector<MicroserviceData> datas = {
             {"", 20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 0.5, {1}},
             {"", 100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5}
-            //{30*10240, 1*10240, 30*60*1.2, 30*60, 10240, 50, 2, 0.8}
+            //{"", 30*10240, 1*10240, 30*60*1.2, 30*60, 10240, 50, 2, 0.8}
     };
     vector<Node> nos = {
-            {"",300, 800, 2000, 5*1024, 8*1024, 16*1024},
             {"",1200, 800, 2000, 10*1024, 6*1024,16*1024},
-            {"",300, 700, 1000, 4*1024, 4*1024, 8*1024}
+            {"",300, 700, 1000, 4*1024, 4*1024, 8*1024},
+            {"",300, 700, 1000, 4*1024, 4*1024, 8*1024},
+            {"",300, 700, 1000, 4*1024, 4*1024, 8*1024},
+            {"",1200, 800, 2000, 10*1024, 6*1024,16*1024},
+            {"",300, 800, 2000, 5*1024, 8*1024, 16*1024}
     };
     int bw = 50*1024;  //50MB/s
     ResourceQuota rq{10000, 5*1024};
