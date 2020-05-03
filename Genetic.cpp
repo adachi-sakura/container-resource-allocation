@@ -422,7 +422,7 @@ void calculate_mem_request()//根据历史最大值计算申请量
     for(int i=0; i<MS_TOTAL; i++)
     {
         double max_memory = microservices[i].max_memory_usage;
-        double request_memory = max(max_memory+MINBUMPUP, max_memory*BUMPUPRATIO);
+        double request_memory = max(max_memory+MINBUMPUP/microservices[i].replicas, max_memory*BUMPUPRATIO);
         microservices[i].request_memory = min(request_memory, limitRange.mem);//受limit range限制
     }
 }
@@ -457,8 +457,8 @@ double func_obj(const vector<vector<Gene>> &Gen)    //部署结点的平均使�
         int loc = it.first;
         auto resource_usage = it.second;
         utilities.push_back(utility{
-            .cpu = resource_usage.cpu+nodes[loc].current_cpu/nodes[loc].sum_cpu,
-            .mem = resource_usage.mem+nodes[loc].current_mem/nodes[loc].sum_mem
+            .cpu = (resource_usage.cpu+nodes[loc].current_cpu)/nodes[loc].sum_cpu,
+            .mem = (resource_usage.mem+nodes[loc].current_mem)/nodes[loc].sum_mem
         });
     }
     double sum_cpu_utility = 0;
@@ -602,7 +602,7 @@ void eval()
             if (!disobeys[i])
                 penalty += penaltyRate[i]*restrain_normalization(i, chromsome.Gen);
         }
-        chromsome.fitness = obj-penalty+(penalty==0);
+        chromsome.fitness = max(obj-penalty, double(0))+(penalty==0);
     }
 
 }
@@ -851,7 +851,6 @@ void test()
     int iter = MAXGENES;
     cout<<"test begin"<<endl;
     do {
-        cout<<"iter: "<<MAXGENES-iter+1<<endl;
 
         eval();
 
@@ -866,6 +865,7 @@ void test()
         aggregation();
 
         iter--;
+        cout<<"iter: "<<MAXGENES-iter+1<<"  "<<best_chrom.fitness<<endl;
     } while (iter>0);
     end = clock();
     cout<<"test finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
