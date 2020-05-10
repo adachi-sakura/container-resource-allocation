@@ -53,9 +53,10 @@ struct Microservice_gene//: SerializableJSONObject
     //jsonxx::Object object() override ;
 };
 
+using MicroserviceGenes = std::vector<std::vector<Gene>>;
 struct Chromosome
 {
-    std::vector<std::vector<Gene>> Gen;   //存放MS_TOTAL个微服务下replica个实例的资源分配
+    MicroserviceGenes Gen;   //存放MS_TOTAL个微服务下replica个实例的资源分配
     double fitness=0;
     double rfitness=0;
     double cfitness=0;
@@ -152,4 +153,5 @@ std::vector<Microservice_gene>& run(AlgorithmParameters &, std::string &);
 //void testCrossOver(AlgorithmParameters&);
 //void testElite(AlgorithmParameters&);
 //void testPenalty(AlgorithmParameters&);
+int AllocatedNodesNum(const MicroserviceGenes &);
 #endif //GENERIC_ALGORITHM_GENETIC_H

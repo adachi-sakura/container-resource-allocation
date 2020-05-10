@@ -15,8 +15,9 @@ AlgorithmParameters getDefaultParameters()
     AlgorithmParameters params;
     params.datas = {
             {"", 20*1024, 20*1024, 30*60*0.2, 30*60, 1024*20, 100, 3, 0.5, {1}},
-            {"", 100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5}
-            //{"", 30*10240, 1*10240, 30*60*1.2, 30*60, 10240, 50, 2, 0.8}
+            {"", 100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5},
+            {"", 30*10240, 1*10240, 30*60*1.2, 30*60, 10240, 50, 2, 0.8},
+            {"", 100*1024, 80*1024, 30*60*0.8, 30*60, 20480, 500, 5, 0.5, {1, 2}},
     };
     params.nodes = {
         {"",1200, 800, 2000, 10*1024, 6*1024,16*1024},
@@ -24,10 +25,12 @@ AlgorithmParameters getDefaultParameters()
         {"",300, 700, 1000, 4*1024, 4*1024, 8*1024},
         {"",300, 700, 1000, 4*1024, 4*1024, 8*1024},
         {"",1200, 800, 2000, 10*1024, 6*1024,16*1024},
-        {"",300, 800, 2000, 5*1024, 8*1024, 16*1024}
+        {"",300, 800, 2000, 5*1024, 8*1024, 16*1024},
+        {"",1200, 800, 2000, 10*1024, 6*1024,16*1024},
+        {"",300, 700, 1000, 4*1024, 4*1024, 8*1024}
     };
     params.bandwidth = 50*1024;  //50MB/s
-    params.rq = ResourceQuota {10000, 5*1024};
+    params.rq = ResourceQuota {10000, 10*1024};
     params.lm = LimitRange {800, 1024};
     params.totalTimeRequired = 0.8;
     params.entrancePoint = 0;
@@ -69,7 +72,7 @@ void testIteration(AlgorithmParameters& params)
     }
     auto fitnesses = iterate();
     fstream file;
-    file.open("output/maxgenes.csv", ios::app);
+    file.open(GenerationTestOutputPath, ios::app);
     file<<MAXGENES<<" ";
     for(auto fitness: fitnesses)
     {
@@ -88,7 +91,7 @@ void testMutation(AlgorithmParameters& params)
     }
     auto fitnesses = iterate();
     fstream file;
-    file.open("output/pmutation.csv", ios::app);
+    file.open(MutationTestOutputPath, ios::app);
     file<<PMUTATION<<" ";
     for(auto fitness: fitnesses)
     {
@@ -107,7 +110,7 @@ void testCrossOver(AlgorithmParameters& params)
     }
     auto fitnesses = iterate();
     fstream file;
-    file.open("output/pxover.csv", ios::app);
+    file.open(CrossOverTestOutputPath, ios::app);
     file<<PXOVER<<" ";
     for(auto fitness: fitnesses)
     {
@@ -126,7 +129,7 @@ void testElite(AlgorithmParameters& params)
     }
     auto fitnesses = iterate();
     fstream file;
-    file.open("output/elite.csv", ios::app);
+    file.open(EliteTestOutputPath, ios::app);
     file<<ELITERATE<<" ";
     for(auto fitness: fitnesses)
     {
@@ -145,7 +148,7 @@ void testPenalty(AlgorithmParameters& params)
     }
     auto fitnesses = iterate();
     fstream file;
-    file.open("output/penalty.csv", ios::app);
+    file.open(PenaltyTestOutputPath, ios::app);
     file<<PENALTYRATE<<" ";
     for(auto fitness: fitnesses)
     {
@@ -186,6 +189,17 @@ double calcFitness(vector<Node> & nodes, vector<Node> & originalNodes)
     return 0.5*sum_cpu_utility/num+0.5*sum_mem_utility/num;
 }
 
+int calcNodesCount(vector<Node> & nodes, vector<Node> & originalNodes)
+{
+    int count = 0;
+    for(int i = 0; i < nodes.size(); i++)
+    {
+        if (nodes[i].current_cpu != originalNodes[i].current_cpu)
+            count++;
+    }
+    return count;
+}
+
 void testRoundRobin(AlgorithmParameters& params)
 {
     auto pods = standardPod(params);
@@ -216,8 +230,11 @@ retry:
     }
     auto fitness = calcFitness(nodes, params.nodes);
     fstream file;
-    file.open("output/algorithm.csv", ios::app);
+    file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"RoundRobin"<<" "<<fitness<<endl;
+    file.close();
+    file.open(AlgorithmNodeCountTestOutputPath, ios::app);
+    file<<"RoundRobin"<<" "<<calcNodesCount(nodes, params.nodes)<<endl;
     file.close();
 }
 
@@ -241,9 +258,13 @@ retry:
         }
     }
     auto fitness = calcFitness(nodes, params.nodes);
+    auto nodesCount = calcNodesCount(nodes, params.nodes);
     fstream file;
-    file.open("output/algorithm.csv", ios::app);
+    file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"Random"<<" "<<fitness<<endl;
+    file.close();
+    file.open(AlgorithmNodeCountTestOutputPath, ios::app);
+    file<<"Random"<<" "<<calcNodesCount(nodes, params.nodes)<<endl;
     file.close();
 }
 
@@ -346,8 +367,11 @@ void testKubernetes(AlgorithmParameters& params)
     }
     auto fitness = calcFitness(nodes, params.nodes);
     fstream file;
-    file.open("output/algorithm.csv", ios::app);
+    file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"Kubernetes"<<" "<<fitness<<endl;
+    file.close();
+    file.open(AlgorithmNodeCountTestOutputPath, ios::app);
+    file<<"Kubernetes"<<" "<<calcNodesCount(nodes, params.nodes)<<endl;
     file.close();
 }
 
@@ -360,8 +384,11 @@ void testGenetic(AlgorithmParameters& params)
     }
     auto fitnesses = iterate();
     fstream file;
-    file.open("output/algorithm.csv", ios::app);
+    file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"Genetic"<<" "<<func_obj(best_chrom.Gen)<<endl;
+    file.close();
+    file.open(AlgorithmNodeCountTestOutputPath, ios::app);
+    file<<"Genetic"<<" "<<AllocatedNodesNum(best_chrom.Gen)<<endl;
     file.close();
 }
 

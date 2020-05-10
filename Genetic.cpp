@@ -55,7 +55,7 @@ void Gene::init(int ms_num)
 
 void Chromosome::init()
 {
-    Gen = vector<vector<Gene>> (MS_TOTAL);
+    Gen = MicroserviceGenes (MS_TOTAL);
     for(int i=0; i<MS_TOTAL; i++)
     {
         Gen[i] = vector<Gene>(microservices[i].replicas);
@@ -87,7 +87,7 @@ void Chromosome::print() {
     }
 }
 
-bool restrain(const vector<vector<Gene>> &Gen)
+bool restrain(const MicroserviceGenes &Gen)
 {
     struct resource
     {
@@ -168,7 +168,7 @@ bool restrain(const vector<vector<Gene>> &Gen)
     return true;
 }
 
-double calServiceResponseTime(const vector<Microservice> & micro_services, const vector<vector<Gene>> & Gen, int entry, int depth)
+double calServiceResponseTime(const vector<Microservice> & micro_services, const MicroserviceGenes & Gen, int entry, int depth)
 {
     double response_time = 0;
     double cpu_time=0;
@@ -199,7 +199,7 @@ double calBestResponseTime(const vector<Microservice> & micro_services, int entr
     return response_time;
 }
 
-vector<bool> restrain_count(const vector<vector<Gene>> &Gen)
+vector<bool> restrain_count(const MicroserviceGenes &Gen)
 {
     vector<bool> ret;
     struct resource
@@ -441,7 +441,7 @@ void calculate_mem_request()//根据历史最大值计算申请量
     }
 }
 
-double func_obj(const vector<vector<Gene>> &Gen)    //部署结点的平均使用率
+double func_obj(const MicroserviceGenes &Gen)    //部署结点的平均使用率
 {
     struct resource
     {
@@ -485,7 +485,7 @@ double func_obj(const vector<vector<Gene>> &Gen)    //部署结点的平均使�
     return 0.5*sum_cpu_utility/utilities.size()+0.5*sum_mem_utility/utilities.size();
 }
 
-double restrain_normalization(int i, const vector<vector<Gene>> & Gen)
+double restrain_normalization(int i, const MicroserviceGenes & Gen)
 {
     double value = 0;
     struct resource
@@ -1034,3 +1034,16 @@ bool checkLoopDependency(vector<bool> &route, vector<bool> &checked, vector<Micr
 //    ms_gene << "requestMemory" << this->request_memory;
 //    return ms_gene;
 //}
+
+int AllocatedNodesNum(const MicroserviceGenes &Gen)
+{
+    unordered_map<int,int> allocation2NodeCountMap;
+    for(auto & ms : Gen)
+    {
+        for(auto & gen : ms)
+        {
+            allocation2NodeCountMap[gen.loc]++;
+        }
+    }
+    return allocation2NodeCountMap.size();
+}

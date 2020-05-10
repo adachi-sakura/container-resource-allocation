@@ -11,6 +11,15 @@ extern Chromosome best_chrom;
 
 #define MAXNODESCORE 100
 
+const std::string GenerationTestOutputPath = "output/maxgenes.csv";
+const std::string MutationTestOutputPath = "output/pmutation.csv";
+const std::string CrossOverTestOutputPath = "output/pxover.csv";
+const std::string EliteTestOutputPath = "output/elite.csv";
+const std::string PenaltyTestOutputPath = "output/penalty.csv";
+const std::string AlgorithmFitnessTestOutputPath = "output/fitness.csv";
+const std::string AlgorithmNodeCountTestOutputPath = "output/nodeCount.csv";
+
+
 struct Pod
 {
     double cpu;
