@@ -2,9 +2,9 @@
 
 #include <boost/asio.hpp>
 
-#include "common.h"
-#include "ci_map.h"
-#include "query_string.h"
+#include "crow/common.h"
+#include "crow/ci_map.h"
+#include "crow/query_string.h"
 
 namespace crow
 {
