@@ -2,7 +2,7 @@
 // Created by Administrator on 2020/5/11.
 //
 #include "Genetic.h"
-#include "include/jsonxx.h"
+#include "thirdparty/jsonxx/jsonxx.h"
 using namespace jsonxx;
 
 void AlgorithmParameters::unserialize(const std::string & json)

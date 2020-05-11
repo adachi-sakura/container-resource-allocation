@@ -5,8 +5,8 @@
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
 
-#include "crow/http_parser_merged.h"
-#include "crow/http_request.h"
+#include "http_parser_merged.h"
+#include "http_request.h"
 
 namespace crow
 {

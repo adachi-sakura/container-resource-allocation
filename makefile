@@ -1,2 +1,2 @@
-server: main.cpp Genetic.cpp jsonxx/jsonxx.cc
-    g++ -Iinclude -std=c++11 main.cpp Genetic.cpp GeneticSerializableObjects.cpp jsonxx/jsonxx.cc -lpthread -lboost_system-mt -lboost_filesystem -o server
+server: main.cpp Genetic.cpp GeneticSerializableObjects.cpp thirdparty/jsonxx/jsonxx/jsonxx.cc
+	g++ -Ithirdparty/crow -Ithirdparty/jsonxx -std=c++11 $^ -lpthread -lboost_system -lboost_filesystem -o $@

@@ -1,7 +1,7 @@
-#include "include/crow.h"
+#include "thirdparty/crow/crow.h"
 #include "Genetic.h"
 //#include "test.h"
-#include "include/jsonxx.h"
+#include "thirdparty/jsonxx/jsonxx.h"
 using namespace std;
 using namespace jsonxx;
 
