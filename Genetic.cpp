@@ -3,14 +3,8 @@
 //
 
 #include "Genetic.h"
-//#include "include/jsonxx.h"
 #include <iostream>
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
 #include <ctime>
-#include <cstring>
-#include <limits>
 #include <algorithm>
 #include <unordered_map>
 #include <memory>
@@ -18,14 +12,14 @@
 #include <random>
 
 using namespace std;
-//using namespace jsonxx;
+
 
 default_random_engine engine(time(nullptr));
 uniform_real_distribution<double> random_probability(0., 1.);
 
 
 const double BUMPUPRATIO = 1.2;
-const int MINBUMPUP = 50;  //50MB
+const double MINBUMPUP = 50;  //50MB
 int bandwidth;    //带宽
 ResourceQuota resourceQuota;
 LimitRange limitRange;
@@ -63,10 +57,11 @@ void Chromosome::init()
     fitness = 0;
     rfitness = 0;
     cfitness = 0;
+    using GeneIndexType = decltype(Gen.size());
     do{
-        for(int i=0;i<Gen.size();i++)
+        for(GeneIndexType i=0;i<Gen.size();i++)
         {
-            for(int j=0;j<Gen[i].size();j++)
+            for(GeneIndexType j=0;j<Gen[i].size();j++)
             {
                 Gen[i][j].init(i);
             }
@@ -76,7 +71,8 @@ void Chromosome::init()
 
 void Chromosome::print() {
     cout<<"Chrom fitness is: "<<this->fitness<<endl;
-    for(int i=0; i<Gen.size(); i++)
+    using GeneIndexType = decltype(Gen.size());
+    for(GeneIndexType i=0; i<Gen.size(); i++)
     {
         cout<<"microservice "<<i<<endl;
         cout<<"memory request: "<<microservices[i].request_memory<<endl;
@@ -96,9 +92,10 @@ bool restrain(const MicroserviceGenes &Gen)
         resource(){cpu=0; mem=0;}
     };
     vector<resource> node_used(NODES_TOTAL);
-    for(int i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
+    using GeneIndexType = decltype(Gen.size());
+    for(GeneIndexType i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
     {
-        for(int j=0;j<Gen[i].size();j++)
+        for(GeneIndexType j=0;j<Gen[i].size();j++)
         {
             int loc = Gen[i][j].loc;
             if (loc < 0 || loc >= NODES_TOTAL)
@@ -113,9 +110,9 @@ bool restrain(const MicroserviceGenes &Gen)
     }
     //cout<<"r1 passed"<<endl;
 
-    for(int i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
+    for(GeneIndexType i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
     {
-        for(int j=0;j<Gen[i].size();j++)
+        for(GeneIndexType j=0;j<Gen[i].size();j++)
         {
             if(Gen[i][j].cpu < microservices[i].cpu_min || Gen[i][j].cpu > microservices[i].cpu_max_used)
                 return false;
@@ -124,7 +121,7 @@ bool restrain(const MicroserviceGenes &Gen)
     //cout<<"r2 passed"<<endl;
 
     resource total_used;
-    for(int i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
+    for(GeneIndexType i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
     {
         total_used.mem += microservices[i].request_memory*microservices[i].replicas;
         if (total_used.mem > resourceQuota.mem_total)
@@ -138,7 +135,7 @@ bool restrain(const MicroserviceGenes &Gen)
     }
     //cout<<"r3 passed"<<endl;
 
-    for(int i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
+    for(GeneIndexType i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
     {
         if (microservices[i].request_memory > limitRange.mem)
             return false;
@@ -210,9 +207,10 @@ vector<bool> restrain_count(const MicroserviceGenes &Gen)
     };
     vector<resource> node_used(NODES_TOTAL);
     ret.push_back(true);
-    for(int i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
+    using GeneIndexType = decltype(Gen.size());
+    for(GeneIndexType i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
     {
-        for(int j=0;j<Gen[i].size();j++)
+        for(GeneIndexType j=0;j<Gen[i].size();j++)
         {
             int loc = Gen[i][j].loc;
             if (loc < 0 || loc >= NODES_TOTAL)
@@ -235,9 +233,9 @@ vector<bool> restrain_count(const MicroserviceGenes &Gen)
 
 r2:
     ret.push_back(true);
-    for(int i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
+    for(GeneIndexType i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
     {
-        for(int j=0;j<Gen[i].size();j++)
+        for(GeneIndexType j=0;j<Gen[i].size();j++)
         {
             if(Gen[i][j].cpu < microservices[i].cpu_min || Gen[i][j].cpu > microservices[i].cpu_max_used)
             {
@@ -250,7 +248,7 @@ r2:
 r3:
     ret.push_back(true);
     resource total_used;
-    for(int i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
+    for(GeneIndexType i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
     {
         total_used.mem += microservices[i].request_memory*microservices[i].replicas;
         if (total_used.mem > resourceQuota.mem_total)
@@ -271,7 +269,7 @@ r3:
 
 r4:
     ret.push_back(true);
-    for(int i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
+    for(GeneIndexType i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
     {
         if (microservices[i].request_memory > limitRange.mem)
         {
@@ -395,8 +393,8 @@ bool init(vector<Node> &no,vector<MicroserviceData> &datas, double totalTimeRequ
     for(int i=0; i<MS_TOTAL; i++)
     {
         microservices[i].name = datas[i].name;
-        microservices[i].network_usage.receive = datas[i].network_receive/datas[i].httpRequestsCount;
-        microservices[i].network_usage.transmit = datas[i].network_transmit/datas[i].httpRequestsCount;
+        microservices[i].network_usage.receive = static_cast<float>(datas[i].network_receive)/static_cast<float>(datas[i].httpRequestsCount);
+        microservices[i].network_usage.transmit = static_cast<float>(datas[i].network_transmit)/static_cast<float>(datas[i].httpRequestsCount);
         microservices[i].max_response_time = datas[i].leastResponseTime;
         microservices[i].cpu_usage_time = datas[i].cpuUsageTimeTotal/datas[i].httpRequestsCount;
         microservices[i].cpu_max_used = datas[i].cpuUsageTimeTotal/datas[i].cpuTimeTotal*1000;
@@ -419,10 +417,13 @@ bool init(vector<Node> &no,vector<MicroserviceData> &datas, double totalTimeRequ
 
     clock_t begin,end;
     cout<<"ready to initial chromsome"<<endl;
+    int cnt = 0;
     begin = clock();
     for(auto & chromsome : popcurrent)
     {
         chromsome.init();
+        if(++cnt%10 == 0)
+            cout<<cnt<<" initialized"<<endl;
         //cout<<"initialized"<<endl;
     }
     end = clock();
@@ -450,7 +451,8 @@ double func_obj(const MicroserviceGenes &Gen)    //部署结点的平均使用�
         resource(){cpu=0; mem=0;}
     };
     unordered_map<int, resource> resource_usages;
-    for(int i=0; i<Gen.size(); i++)
+    using GeneIndexType = decltype(Gen.size());
+    for(GeneIndexType i=0; i<Gen.size(); i++)
     {
         for(auto container : Gen[i])
         {
@@ -485,7 +487,7 @@ double func_obj(const MicroserviceGenes &Gen)    //部署结点的平均使用�
     return 0.5*sum_cpu_utility/utilities.size()+0.5*sum_mem_utility/utilities.size();
 }
 
-double restrain_normalization(int i, const MicroserviceGenes & Gen)
+double restrain_normalization(int n, const MicroserviceGenes & Gen)
 {
     double value = 0;
     struct resource
@@ -494,12 +496,13 @@ double restrain_normalization(int i, const MicroserviceGenes & Gen)
         double mem;
         resource(){cpu=0; mem=0;}
     };
-    switch (i)
+    using GeneIndexType = decltype(Gen.size());
+    switch (n)
     {
         case 0:         //违反单物理机资源上限
         {
             vector<resource> resources(NODES_TOTAL);
-            for(int i=0; i<Gen.size(); i++)
+            for(GeneIndexType i=0; i<Gen.size(); i++)
             {
                 for(auto container: Gen[i])
                 {
@@ -510,7 +513,7 @@ double restrain_normalization(int i, const MicroserviceGenes & Gen)
                 }
             }
             double total_excess = 0;
-            for(int i=0; i<NODES_TOTAL; i++)
+            for(GeneIndexType i=0; i<NODES_TOTAL; i++)
             {
                 resource r = resources[i];
                 double cpu_excess = max(r.cpu-nodes[i].available_cpu(), 0.)/nodes[i].available_cpu();
@@ -524,7 +527,7 @@ double restrain_normalization(int i, const MicroserviceGenes & Gen)
         {
             double cpu_deviation_total = 0;
             double container_total = 0;
-            for(int i=0; i<Gen.size(); i++)
+            for(GeneIndexType i=0; i<Gen.size(); i++)
             {
                 container_total += microservices[i].replicas;
                 for(auto container : Gen[i])
@@ -541,7 +544,7 @@ double restrain_normalization(int i, const MicroserviceGenes & Gen)
         case 2: //容器资源量总和不超过Resource Quota
         {
             resource r;
-            for(int i=0; i<Gen.size(); i++)
+            for(GeneIndexType i=0; i<Gen.size(); i++)
             {
                 r.mem += microservices[i].request_memory*microservices[i].replicas;
                 for(auto container : Gen[i])
@@ -559,7 +562,7 @@ double restrain_normalization(int i, const MicroserviceGenes & Gen)
             int container_count = 0;
             double cpu_excess_total = 0;
             double mem_excess_total = 0;
-            for(int i=0; i<Gen.size(); i++)
+            for(GeneIndexType i=0; i<Gen.size(); i++)
             {
                 for(auto container : Gen[i])
                 {
@@ -611,7 +614,8 @@ void eval()
         double obj = func_obj(chromsome.Gen);
         vector<bool> disobeys = restrain_count(chromsome.Gen);
         double penalty = 0;
-        for(int i=0; i<penaltyRate.size(); i++)
+        using penaltyRateIndexType = decltype(penaltyRate.size());
+        for(penaltyRateIndexType i=0; i<penaltyRate.size(); i++)
         {
             if (!disobeys[i])
                 penalty += penaltyRate[i]*restrain_normalization(i, chromsome.Gen);
@@ -623,9 +627,10 @@ void eval()
 
 void elite()
 {
-    int elite_pos=-1;
+    using popcurrentIndexType = decltype(popcurrent.size());
+    popcurrentIndexType elite_pos=-1;
     multimap<double, int> fitness_rank; // fitness,position 按fitness自小到大排列的map
-    for(int i=0; i<popcurrent.size(); i++)
+    for(popcurrentIndexType i=0; i<popcurrent.size(); i++)
     {
         if(restrain(popcurrent[i].Gen))
         {
@@ -695,7 +700,8 @@ void crossover()
             int chrom_num2 = random_pop(engine);
             int xpoint = random_container(engine)+1;  //交换xpoint个
             int container_swapped = 0;
-            for(int i=0; i<popcurrent[chrom_num1].Gen.size(); i++)
+            using GeneIndexType = decltype(Chromosome::Gen.size());
+            for(GeneIndexType i=0; i<popcurrent[chrom_num1].Gen.size(); i++)
             {
                 int replicas = popcurrent[chrom_num1].Gen[i].size();
                 if (container_swapped + replicas <= xpoint)
@@ -719,9 +725,10 @@ void mutate()
 {
     uniform_int_distribution<int> random_nodes(0, NODES_TOTAL-1);
     uniform_int_distribution<int> random_tri(0, 2);
+    using GeneIndexType = decltype(Chromosome::Gen.size());
     for(auto & chrom : popcurrent)
     {
-        for(int i=0; i<chrom.Gen.size();i++)
+        for(GeneIndexType i=0; i<chrom.Gen.size();i++)
         {
             for(auto & container : chrom.Gen[i])
             {
@@ -780,9 +787,10 @@ void aggregation()
         };
         vector<resource> resource_usages(NODES_TOTAL);
         vector<vector<pair<int,int>>> container_allocation(NODES_TOTAL);
-        for(int microservice_num=0; microservice_num < chrom.Gen.size(); microservice_num++)
+        using GeneIndexType = decltype(chrom.Gen.size());
+        for(GeneIndexType microservice_num=0; microservice_num < chrom.Gen.size(); microservice_num++)
         {
-            for(int container_num=0; container_num < chrom.Gen[microservice_num].size(); container_num++)
+            for(GeneIndexType container_num=0; container_num < chrom.Gen[microservice_num].size(); container_num++)
             {
                 auto container = chrom.Gen[microservice_num][container_num];
                 if (container.loc < 0 || container.loc >= NODES_TOTAL)
@@ -804,21 +812,23 @@ void aggregation()
             }
         };
         vector<utility> utilities(NODES_TOTAL);
-        for(int node_num=0; node_num < resource_usages.size(); node_num++)
+        using resourceUsagesIndexType = decltype(resource_usages.size());
+        for(resourceUsagesIndexType node_num=0; node_num < resource_usages.size(); node_num++)
         {
             utilities[node_num].node_num = node_num;
             utilities[node_num].cpu = (resource_usages[node_num].cpu + nodes[node_num].current_cpu) / nodes[node_num].sum_cpu;
             utilities[node_num].mem = (resource_usages[node_num].mem + nodes[node_num].current_mem) / nodes[node_num].sum_mem;
         }
         sort(utilities.begin(), utilities.end());
-        for(int utility_rank_low=0; utility_rank_low < utilities.size(); utility_rank_low++)
+        using utilitiesIndexType = decltype(utilities.size());
+        for(utilitiesIndexType utility_rank_low=0; utility_rank_low < utilities.size(); utility_rank_low++)
         {
             int migrate_from = utilities[utility_rank_low].node_num;
             for(const auto & pair : container_allocation[migrate_from])
             {
                 int microservice_num = pair.first;
                 int replica_num = pair.second;
-                for(int utility_rank_high = utilities.size()-1; utility_rank_high>utility_rank_low; utility_rank_high--)
+                for(utilitiesIndexType utility_rank_high = utilities.size()-1; utility_rank_high>utility_rank_low; utility_rank_high--)
                 {
                     int migrate_to = utilities[utility_rank_high].node_num;
                     auto & container = chrom.Gen[microservice_num][replica_num];
@@ -858,7 +868,7 @@ void test()
     LimitRange lr{800, 1024};
     double total = 0.8;
     int entrance = 0;
-    clock_t begin,part_begin,part_end,end;
+    clock_t begin,end;
     begin = clock();
     if (!init(nos, datas, total, entrance, bw, rq, lr))
     {
@@ -906,134 +916,65 @@ bool checkLoopDependency(vector<bool> &route, vector<bool> &checked, vector<Micr
     checked[entrance] = true;
     return true;
 }
-//
-//vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
-//{
-//
-//    vector<MicroserviceData> datas = params.datas;
-//    vector<Node> nos = params.nodes;
-//    int bw = params.bandwidth;
-//    ResourceQuota rq = params.rq;
-//    LimitRange lr = params.lm;
-//    double total = params.totalTimeRequired;
-//    int entrance = params.entrancePoint;
-//    clock_t begin,part_begin,part_end,end;
-//    begin = clock();
-//    if (!init(nos, datas, total, entrance, bw, rq, lr))
-//    {
-//        error = "initial failed";
-//        return output;
-//    }
-//    output = vector<Microservice_gene>(MS_TOTAL);
-//    int iter = MAXGENES;
-//    cout<<"begin"<<endl;
-//    do {
-//        cout<<"iter: "<<MAXGENES-iter+1<<endl;
-//
-//        eval();
-//
-//        elite();
-//
-//        select();
-//
-//        crossover();
-//
-//        mutate();
-//
-//        aggregation();
-//
-//        iter--;
-//        cout<<best_chrom.fitness<<endl;
-//    } while (iter>0);
-//    end = clock();
-//    cout<<"finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
-//
-//    for(int i=0; i<output.size(); i++)
-//    {
-//        output[i].name = microservices[i].name;
-//        for(auto & container : best_chrom.Gen[i])
-//        {
-//            Microservice_gene::allocation alloc;
-//            alloc.loc = nodes[container.loc].name;
-//            alloc.cpu = container.cpu;
-//            output[i].Gen.push_back(alloc);
-//        }
-//        output[i].request_memory = microservices[i].request_memory;
-//    }
-//    return output;
-//}
-//
-//
-//void AlgorithmParameters::unserialize(const std::string & json)
-//{
-//    jsonxx::Object o;
-//    o.parse(json);
-//    this->rq.cpu_total = o.get<Number>("cpu_rq_total");
-//    this->rq.mem_total = o.get<Number>("mem_rq_total");
-//    this->lm.cpu = o.get<Number>("cpu_lm");
-//    this->lm.mem = o.get<Number>("mem_lm");
-//    Array nodes = o.get<Array>("nodes");
-//    for(int i=0; i<nodes.size(); i++)
-//    {
-//        Object node = nodes.get<Object>(i);
-//        Node no;
-//        no.name = node.get<String>("name");
-//        no.current_cpu = node.get<Number>("current_cpu");
-//        no.allocatable_cpu = node.get<Number>("allocatable_cpu");
-//        no.sum_cpu = node.get<Number>("sum_cpu");
-//        no.current_mem = node.get<Number>("current_mem");
-//        no.allocatable_mem = node.get<Number>("allocatable_mem");
-//        no.sum_mem = node.get<Number>("sum_mem");
-//        this->nodes.push_back(no);
-//    }
-//    Array microservices = o.get<Array>("datas");
-//    for(int i=0; i<microservices.size(); i++)
-//    {
-//        Object microservice = microservices.get<Object>(i);
-//        MicroserviceData ms;
-//        ms.name = microservice.get<String>("name");
-//        ms.network_receive = microservice.get<Number>("receive");
-//        ms.network_transmit = microservice.get<Number>("transmit");
-//        ms.cpuUsageTimeTotal = microservice.get<Number>("cpuUsageTime");
-//        ms.cpuTimeTotal = microservice.get<Number>("cpuTimeTotal");
-//        ms.httpRequestsCount = microservice.get<Number>("httpRequestCount");
-//        ms.maxMemoryUsage = microservice.get<Number>("maxMemoryUsage");
-//        ms.replica = microservice.get<Number>("replicas");
-//        ms.leastResponseTime = microservice.get<Number>("leastResponseTime");
-//
-//        Array invokeServices = microservice.get<Array>("microservicesToInvoke");
-//        for(int j=0; j<invokeServices.size(); j++)
-//        {
-//            auto invokeService = invokeServices.get<Number>(j);
-//            ms.microservicesToInvoke.push_back(invokeService);
-//        }
-//        this->datas.push_back(ms);
-//    }
-//    this->entrancePoint = o.get<Number>("entrancePoint");
-//    this->bandwidth = o.get<Number>("bandwidth");
-//    this->totalTimeRequired = o.get<Number>("totalTimeRequired");
-//}
-//
-//AlgorithmParameters::AlgorithmParameters(std::string &json)
-//{
-//    unserialize(json);
-//}
-//
-//jsonxx::Object Microservice_gene::object() {
-//    Object ms_gene;
-//    ms_gene << "name" << this->name;
-//    Array genes;
-//    for(auto & container : this->Gen)
-//    {
-//        Object container_gene;
-//        container_gene << "loc" << container.loc;
-//        container_gene << "cpu" << container.cpu;
-//        genes << container_gene;
-//    }
-//    ms_gene << "containers" << genes;
-//    ms_gene << "requestMemory" << this->request_memory;
-//    return ms_gene;
-//}
+
+vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
+{
+
+    vector<MicroserviceData> datas = params.datas;
+    vector<Node> nos = params.nodes;
+    int bw = params.bandwidth;
+    ResourceQuota rq = params.rq;
+    LimitRange lr = params.lm;
+    double total = params.totalTimeRequired;
+    int entrance = params.entrancePoint;
+    clock_t begin,end;
+    begin = clock();
+    if (!init(nos, datas, total, entrance, bw, rq, lr))
+    {
+        error = "initial failed";
+        return output;
+    }
+    output = vector<Microservice_gene>(MS_TOTAL);
+    int iter = MAXGENES;
+    cout<<"begin"<<endl;
+    do {
+        cout<<"iter: "<<MAXGENES-iter+1<<endl;
+
+        eval();
+
+        elite();
+
+        select();
+
+        crossover();
+
+        mutate();
+
+        aggregation();
+
+        iter--;
+        cout<<best_chrom.fitness<<endl;
+    } while (iter>0);
+    end = clock();
+    cout<<"finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
+    using outputIndexType = decltype(output.size());
+    for(outputIndexType i=0; i<output.size(); i++)
+    {
+        output[i].name = microservices[i].name;
+        for(auto & container : best_chrom.Gen[i])
+        {
+            Microservice_gene::allocation alloc;
+            alloc.loc = nodes[container.loc].name;
+            alloc.cpu = container.cpu;
+            output[i].Gen.push_back(alloc);
+        }
+        output[i].request_memory = microservices[i].request_memory;
+    }
+    return output;
+}
+
+
+
 
 int AllocatedNodesNum(const MicroserviceGenes &Gen)
 {
