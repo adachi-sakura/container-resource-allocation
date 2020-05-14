@@ -1,10 +1,12 @@
-#include "include/crow.h"
+#include "thirdparty/crow/crow.h"
 #include "Genetic.h"
-#include "include/jsonxx.h"
+//#include "test.h"
+#include "thirdparty/jsonxx/jsonxx.h"
 using namespace std;
 using namespace jsonxx;
 
 int main() {
+
     crow::SimpleApp app;
     CROW_ROUTE(app, "/ping").methods("GET"_method)([](){
         return "pong";
@@ -14,7 +16,7 @@ int main() {
         AlgorithmParameters params(json);
         string err;
         auto res = run(params, err);
-        if (res.size() == 0)
+        if (res.empty())
         {
             return crow::response(400, err);
         }

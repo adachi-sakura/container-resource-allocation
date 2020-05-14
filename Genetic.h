@@ -53,9 +53,10 @@ struct Microservice_gene: SerializableJSONObject
     jsonxx::Object object() override ;
 };
 
+using MicroserviceGenes = std::vector<std::vector<Gene>>;
 struct Chromosome
 {
-    std::vector<std::vector<Gene>> Gen;   //存放MS_TOTAL个微服务下replica个实例的资源分配
+    MicroserviceGenes Gen;   //存放MS_TOTAL个微服务下replica个实例的资源分配
     double fitness=0;
     double rfitness=0;
     double cfitness=0;
@@ -116,15 +117,15 @@ struct MicroserviceData
 
 struct AlgorithmParameters: SerializableJSONObject
 {
-    ResourceQuota rq;
-    LimitRange lm;
+    ResourceQuota rq{};
+    LimitRange lm{};
     std::vector<Node> nodes;
     std::vector<MicroserviceData> datas;
-    int entrancePoint;
-    int bandwidth;
-    double totalTimeRequired;
+    int entrancePoint = 0;
+    int bandwidth = 0;
+    double totalTimeRequired = 0;
     void unserialize(const std::string &) override ;
-    AlgorithmParameters(std::string &);
+    explicit AlgorithmParameters(std::string &);
     AlgorithmParameters()= default;
 };
 
@@ -146,4 +147,5 @@ bool checkLoopDependency(std::vector<bool> &route, std::vector<bool> & checked, 
 double calServiceResponseTime(const std::vector<Microservice> & micro_services, const std::vector<std::vector<Gene>> & Gen, int entry, int depth);
 double calBestResponseTime(const std::vector<Microservice> & micro_services, int entry, int depth);
 std::vector<Microservice_gene>& run(AlgorithmParameters &, std::string &);
+int AllocatedNodesNum(const MicroserviceGenes &);
 #endif //GENERIC_ALGORITHM_GENETIC_H

@@ -6,7 +6,7 @@
 #define GENERIC_ALGORITHM_TYPE_H
 
 #include <string>
-#include "include/jsonxx.h"
+#include "thirdparty/jsonxx/jsonxx.h"
 
 struct SerializableJSONObject
 {
