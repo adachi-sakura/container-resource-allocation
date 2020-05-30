@@ -83,6 +83,18 @@ void Chromosome::print() {
     }
 }
 
+double Chromosome::SumCpu() {
+	double sum = 0;
+	for(const auto & ms: Gen)
+	{
+		for(const auto & container: ms)
+		{
+			sum += container.cpu;
+		}
+	}
+	return sum;
+}
+
 bool restrain(const MicroserviceGenes &Gen)
 {
     struct resource

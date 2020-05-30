@@ -208,6 +208,20 @@ int calcNodesCount(vector<Node> & nodes, vector<Node> & originalNodes)
     return count;
 }
 
+double calcCpuUsage(const vector<Node> & nodes, const vector<Node> & originalNodes)
+{
+	double sumCpu = 0;
+	for(int i = 0; i<nodes.size(); i++)
+	{
+		if (nodes[i].current_cpu != originalNodes[i].current_cpu)
+		{
+			assert(nodes[i].current_cpu > originalNodes[i].current_cpu);
+			sumCpu += nodes[i].current_cpu-originalNodes[i].current_cpu;
+		}
+	}
+	return sumCpu;
+}
+
 void testRoundRobin(AlgorithmParameters& params)
 {
     auto pods = standardPod(params);
@@ -215,9 +229,7 @@ void testRoundRobin(AlgorithmParameters& params)
     int nodeCount = -1;
 retry:
     auto nodes = params.nodes;
-
-    if (nodeCount == nodes.size()-1)
-        throw("no enough capacity");
+    assert(nodeCount != nodes.size()-1);
     nodeCount++;
     int cur = nodeCount;
     for(int i=0; i<ms_total; i++)
@@ -241,9 +253,14 @@ retry:
     file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"RoundRobin"<<" "<<fitness<<endl;
     file.close();
+
     file.open(AlgorithmNodeCountTestOutputPath, ios::app);
     file<<"RoundRobin"<<" "<<calcNodesCount(nodes, params.nodes)<<endl;
     file.close();
+
+	file.open(AlgorithmCpuUsageTestOutputPath, ios::app);
+	file<<"RoundRobin"<<" "<<calcCpuUsage(nodes, params.nodes)<<endl;
+	file.close();
 }
 
 void testRandom(AlgorithmParameters& params)
@@ -271,9 +288,14 @@ retry:
     file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"Random"<<" "<<fitness<<endl;
     file.close();
+
     file.open(AlgorithmNodeCountTestOutputPath, ios::app);
     file<<"Random"<<" "<<calcNodesCount(nodes, params.nodes)<<endl;
     file.close();
+
+	file.open(AlgorithmCpuUsageTestOutputPath, ios::app);
+	file<<"Random"<<" "<<calcCpuUsage(nodes, params.nodes)<<endl;
+	file.close();
 }
 
 vector<int> calcLeastAllocated(Pod& pod, vector<Node>& nodes)
@@ -361,15 +383,18 @@ void testKubernetes(AlgorithmParameters& params)
             map<int,int> rankedScoreToLocMap;
             for(int n = 0 ;n<sumScore.size(); n++)
             {
-                rankedScoreToLocMap.insert(pair<int,int>(sumScore[i], i));
+                rankedScoreToLocMap[sumScore[n]] = n;
             }
             for(auto it=rankedScoreToLocMap.begin();;)
             {
                 int loc = it->second;
                 if(nodes[loc].allocate(pod.cpu, pod.mem))
                     break;
-                else if(++it == rankedScoreToLocMap.end())
-                    throw("not enough capacity");
+                else
+                {
+                	++it;
+                	assert(it != rankedScoreToLocMap.end());
+                }
             }
         }
     }
@@ -378,8 +403,13 @@ void testKubernetes(AlgorithmParameters& params)
     file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"Kubernetes"<<" "<<fitness<<endl;
     file.close();
+
     file.open(AlgorithmNodeCountTestOutputPath, ios::app);
     file<<"Kubernetes"<<" "<<calcNodesCount(nodes, params.nodes)<<endl;
+    file.close();
+
+    file.open(AlgorithmCpuUsageTestOutputPath, ios::app);
+    file<<"Kubernetes"<<" "<<calcCpuUsage(nodes, params.nodes)<<endl;
     file.close();
 }
 
@@ -395,8 +425,22 @@ void testGenetic(AlgorithmParameters& params)
     file.open(AlgorithmFitnessTestOutputPath, ios::app);
     file<<"Genetic"<<" "<<func_obj(best_chrom.Gen)<<endl;
     file.close();
+
     file.open(AlgorithmNodeCountTestOutputPath, ios::app);
     file<<"Genetic"<<" "<<AllocatedNodesNum(best_chrom.Gen)<<endl;
     file.close();
+
+	file.open(AlgorithmCpuUsageTestOutputPath, ios::app);
+	file<<"Genetic"<<" "<<best_chrom.SumCpu()<<endl;
+	file.close();
 }
 
+void ClearAlgorithmFiles()
+{
+	fstream file;
+	for(const auto & item : AlgorithmPathMap)
+	{
+		file.open(item.second, ios::out);
+		file.close();
+	}
+}

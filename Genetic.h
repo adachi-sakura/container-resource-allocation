@@ -62,6 +62,7 @@ struct Chromosome
     double cfitness=0;
     void init();
     void print();
+    double SumCpu();
 };
 
 struct Node

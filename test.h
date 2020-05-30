@@ -6,6 +6,7 @@
 #define GENERIC_ALGORITHM_TEST_H
 
 #include"Genetic.h"
+#include<unordered_map>
 
 extern Chromosome best_chrom;
 
@@ -18,7 +19,13 @@ const std::string EliteTestOutputPath = "output/elite.csv";
 const std::string PenaltyTestOutputPath = "output/penalty.csv";
 const std::string AlgorithmFitnessTestOutputPath = "output/fitness.csv";
 const std::string AlgorithmNodeCountTestOutputPath = "output/nodeCount.csv";
-
+const std::string AlgorithmCpuUsageTestOutputPath = "output/cpuUsage.csv";
+using str2strMap = const std::unordered_map<std::string, std::string>;
+str2strMap AlgorithmPathMap = {
+		{"AlgorithmFitnessTestOutputPath", "output/fitness.csv"},
+		{"AlgorithmNodeCountTestOutputPath", "output/nodeCount.csv"},
+		{"AlgorithmCpuUsageTestOutputPath", "output/cpuUsage.csv"},
+};
 
 struct Pod
 {
@@ -35,6 +42,7 @@ void testRoundRobin(AlgorithmParameters&);
 void testRandom(AlgorithmParameters&);
 void testKubernetes(AlgorithmParameters&);
 void testGenetic(AlgorithmParameters&);
+void ClearAlgorithmFiles();
 AlgorithmParameters getDefaultParameters();
 
 #endif //GENERIC_ALGORITHM_TEST_H

@@ -14,7 +14,8 @@ x = np.array(df.iloc[:, 0])
 y = np.array(df.iloc[:, 1])
 
 index = np.arange(len(x))
-plt.bar(index, y)
+bar_width=0.3
+plt.bar(index, y, bar_width)
 for posX, posY in enumerate(y):
     plt.text(posX, posY, '%.3f'%posY, ha='center', va='bottom')
 plt.xlabel('Type')
