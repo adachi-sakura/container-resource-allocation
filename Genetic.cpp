@@ -57,11 +57,10 @@ void Chromosome::init()
     fitness = 0;
     rfitness = 0;
     cfitness = 0;
-    using GeneIndexType = decltype(Gen.size());
     do{
-        for(GeneIndexType i=0;i<Gen.size();i++)
+        for(size_t i=0;i<Gen.size();i++)
         {
-            for(GeneIndexType j=0;j<Gen[i].size();j++)
+            for(size_t j=0;j<Gen[i].size();j++)
             {
                 Gen[i][j].init(i);
             }
@@ -71,8 +70,7 @@ void Chromosome::init()
 
 void Chromosome::print() {
     cout<<"Chrom fitness is: "<<this->fitness<<endl;
-    using GeneIndexType = decltype(Gen.size());
-    for(GeneIndexType i=0; i<Gen.size(); i++)
+    for(size_t i=0; i<Gen.size(); i++)
     {
         cout<<"microservice "<<i<<endl;
         cout<<"memory request: "<<microservices[i].request_memory<<endl;
@@ -104,10 +102,9 @@ bool restrain(const MicroserviceGenes &Gen)
         resource(){cpu=0; mem=0;}
     };
     vector<resource> node_used(NODES_TOTAL);
-    using GeneIndexType = decltype(Gen.size());
-    for(GeneIndexType i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
+    for(size_t i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
     {
-        for(GeneIndexType j=0;j<Gen[i].size();j++)
+        for(size_t j=0;j<Gen[i].size();j++)
         {
             int loc = Gen[i][j].loc;
             if (loc < 0 || loc >= NODES_TOTAL)
@@ -122,9 +119,9 @@ bool restrain(const MicroserviceGenes &Gen)
     }
     //cout<<"r1 passed"<<endl;
 
-    for(GeneIndexType i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
+    for(size_t i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
     {
-        for(GeneIndexType j=0;j<Gen[i].size();j++)
+        for(size_t j=0;j<Gen[i].size();j++)
         {
             if(Gen[i][j].cpu < microservices[i].cpu_min || Gen[i][j].cpu > microservices[i].cpu_max_used)
                 return false;
@@ -133,7 +130,7 @@ bool restrain(const MicroserviceGenes &Gen)
     //cout<<"r2 passed"<<endl;
 
     resource total_used;
-    for(GeneIndexType i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
+    for(size_t i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
     {
         total_used.mem += microservices[i].request_memory*microservices[i].replicas;
         if (total_used.mem > resourceQuota.mem_total)
@@ -147,7 +144,7 @@ bool restrain(const MicroserviceGenes &Gen)
     }
     //cout<<"r3 passed"<<endl;
 
-    for(GeneIndexType i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
+    for(size_t i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
     {
         if (microservices[i].request_memory > limitRange.mem)
             return false;
@@ -219,10 +216,9 @@ vector<bool> restrain_count(const MicroserviceGenes &Gen)
     };
     vector<resource> node_used(NODES_TOTAL);
     ret.push_back(true);
-    using GeneIndexType = decltype(Gen.size());
-    for(GeneIndexType i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
+    for(size_t i=0;i<Gen.size();i++)   //任一物理机，被部署在上面的所有微服务实例的计算能力之和不超过该物理机的总计算能力
     {
-        for(GeneIndexType j=0;j<Gen[i].size();j++)
+        for(size_t j=0;j<Gen[i].size();j++)
         {
             int loc = Gen[i][j].loc;
             if (loc < 0 || loc >= NODES_TOTAL)
@@ -245,9 +241,9 @@ vector<bool> restrain_count(const MicroserviceGenes &Gen)
 
 r2:
     ret.push_back(true);
-    for(GeneIndexType i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
+    for(size_t i=0;i<Gen.size();i++)   // 任一微服务容器被分配的cpu要大于等于最小cpu 小于等于最大cpu
     {
-        for(GeneIndexType j=0;j<Gen[i].size();j++)
+        for(size_t j=0;j<Gen[i].size();j++)
         {
             if(Gen[i][j].cpu < microservices[i].cpu_min || Gen[i][j].cpu > microservices[i].cpu_max_used)
             {
@@ -260,7 +256,7 @@ r2:
 r3:
     ret.push_back(true);
     resource total_used;
-    for(GeneIndexType i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
+    for(size_t i=0;i<Gen.size();i++)   // 微服务实例的计算能力之和不超过ResourceQuota的总计算能力
     {
         total_used.mem += microservices[i].request_memory*microservices[i].replicas;
         if (total_used.mem > resourceQuota.mem_total)
@@ -281,7 +277,7 @@ r3:
 
 r4:
     ret.push_back(true);
-    for(GeneIndexType i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
+    for(size_t i=0;i<Gen.size();i++)   // 所有微服务实例不超过Limit Range
     {
         if (microservices[i].request_memory > limitRange.mem)
         {
@@ -463,8 +459,7 @@ double func_obj(const MicroserviceGenes &Gen)    //部署结点的平均使用�
         resource(){cpu=0; mem=0;}
     };
     unordered_map<int, resource> resource_usages;
-    using GeneIndexType = decltype(Gen.size());
-    for(GeneIndexType i=0; i<Gen.size(); i++)
+    for(size_t i=0; i<Gen.size(); i++)
     {
         for(auto container : Gen[i])
         {
@@ -508,13 +503,12 @@ double restrain_normalization(int n, const MicroserviceGenes & Gen)
         double mem;
         resource(){cpu=0; mem=0;}
     };
-    using GeneIndexType = decltype(Gen.size());
     switch (n)
     {
         case 0:         //违反单物理机资源上限
         {
             vector<resource> resources(NODES_TOTAL);
-            for(GeneIndexType i=0; i<Gen.size(); i++)
+            for(size_t i=0; i<Gen.size(); i++)
             {
                 for(auto container: Gen[i])
                 {
@@ -525,7 +519,7 @@ double restrain_normalization(int n, const MicroserviceGenes & Gen)
                 }
             }
             double total_excess = 0;
-            for(GeneIndexType i=0; i<NODES_TOTAL; i++)
+            for(size_t i=0; i<NODES_TOTAL; i++)
             {
                 resource r = resources[i];
                 double cpu_excess = max(r.cpu-nodes[i].available_cpu(), 0.)/nodes[i].available_cpu();
@@ -539,7 +533,7 @@ double restrain_normalization(int n, const MicroserviceGenes & Gen)
         {
             double cpu_deviation_total = 0;
             double container_total = 0;
-            for(GeneIndexType i=0; i<Gen.size(); i++)
+            for(size_t i=0; i<Gen.size(); i++)
             {
                 container_total += microservices[i].replicas;
                 for(auto container : Gen[i])
@@ -556,7 +550,7 @@ double restrain_normalization(int n, const MicroserviceGenes & Gen)
         case 2: //容器资源量总和不超过Resource Quota
         {
             resource r;
-            for(GeneIndexType i=0; i<Gen.size(); i++)
+            for(size_t i=0; i<Gen.size(); i++)
             {
                 r.mem += microservices[i].request_memory*microservices[i].replicas;
                 for(auto container : Gen[i])
@@ -574,7 +568,7 @@ double restrain_normalization(int n, const MicroserviceGenes & Gen)
             int container_count = 0;
             double cpu_excess_total = 0;
             double mem_excess_total = 0;
-            for(GeneIndexType i=0; i<Gen.size(); i++)
+            for(size_t i=0; i<Gen.size(); i++)
             {
                 for(auto container : Gen[i])
                 {
@@ -626,8 +620,7 @@ void eval()
         double obj = func_obj(chromsome.Gen);
         vector<bool> disobeys = restrain_count(chromsome.Gen);
         double penalty = 0;
-        using penaltyRateIndexType = decltype(penaltyRate.size());
-        for(penaltyRateIndexType i=0; i<penaltyRate.size(); i++)
+        for(size_t i=0; i<penaltyRate.size(); i++)
         {
             if (!disobeys[i])
                 penalty += penaltyRate[i]*restrain_normalization(i, chromsome.Gen);
@@ -639,10 +632,9 @@ void eval()
 
 void elite()
 {
-    using popcurrentIndexType = decltype(popcurrent.size());
-    popcurrentIndexType elite_pos=-1;
+	size_t elite_pos=-1;
     multimap<double, int> fitness_rank; // fitness,position 按fitness自小到大排列的map
-    for(popcurrentIndexType i=0; i<popcurrent.size(); i++)
+    for(size_t i=0; i<popcurrent.size(); i++)
     {
         if(restrain(popcurrent[i].Gen))
         {
@@ -712,8 +704,7 @@ void crossover()
             int chrom_num2 = random_pop(engine);
             int xpoint = random_container(engine)+1;  //交换xpoint个
             int container_swapped = 0;
-            using GeneIndexType = decltype(Chromosome::Gen.size());
-            for(GeneIndexType i=0; i<popcurrent[chrom_num1].Gen.size(); i++)
+            for(size_t i=0; i<popcurrent[chrom_num1].Gen.size(); i++)
             {
                 int replicas = popcurrent[chrom_num1].Gen[i].size();
                 if (container_swapped + replicas <= xpoint)
@@ -737,10 +728,9 @@ void mutate()
 {
     uniform_int_distribution<int> random_nodes(0, NODES_TOTAL-1);
     uniform_int_distribution<int> random_tri(0, 2);
-    using GeneIndexType = decltype(Chromosome::Gen.size());
     for(auto & chrom : popcurrent)
     {
-        for(GeneIndexType i=0; i<chrom.Gen.size();i++)
+        for(size_t i=0; i<chrom.Gen.size();i++)
         {
             for(auto & container : chrom.Gen[i])
             {
@@ -799,10 +789,9 @@ void aggregation()
         };
         vector<resource> resource_usages(NODES_TOTAL);
         vector<vector<pair<int,int>>> container_allocation(NODES_TOTAL);
-        using GeneIndexType = decltype(chrom.Gen.size());
-        for(GeneIndexType microservice_num=0; microservice_num < chrom.Gen.size(); microservice_num++)
+        for(size_t microservice_num=0; microservice_num < chrom.Gen.size(); microservice_num++)
         {
-            for(GeneIndexType container_num=0; container_num < chrom.Gen[microservice_num].size(); container_num++)
+            for(size_t container_num=0; container_num < chrom.Gen[microservice_num].size(); container_num++)
             {
                 auto container = chrom.Gen[microservice_num][container_num];
                 if (container.loc < 0 || container.loc >= NODES_TOTAL)
@@ -824,23 +813,21 @@ void aggregation()
             }
         };
         vector<utility> utilities(NODES_TOTAL);
-        using resourceUsagesIndexType = decltype(resource_usages.size());
-        for(resourceUsagesIndexType node_num=0; node_num < resource_usages.size(); node_num++)
+        for(size_t node_num=0; node_num < resource_usages.size(); node_num++)
         {
             utilities[node_num].node_num = node_num;
             utilities[node_num].cpu = (resource_usages[node_num].cpu + nodes[node_num].current_cpu) / nodes[node_num].sum_cpu;
             utilities[node_num].mem = (resource_usages[node_num].mem + nodes[node_num].current_mem) / nodes[node_num].sum_mem;
         }
         sort(utilities.begin(), utilities.end());
-        using utilitiesIndexType = decltype(utilities.size());
-        for(utilitiesIndexType utility_rank_low=0; utility_rank_low < utilities.size(); utility_rank_low++)
+        for(size_t utility_rank_low=0; utility_rank_low < utilities.size(); utility_rank_low++)
         {
             int migrate_from = utilities[utility_rank_low].node_num;
             for(const auto & pair : container_allocation[migrate_from])
             {
                 int microservice_num = pair.first;
                 int replica_num = pair.second;
-                for(utilitiesIndexType utility_rank_high = utilities.size()-1; utility_rank_high>utility_rank_low; utility_rank_high--)
+                for(size_t utility_rank_high = utilities.size()-1; utility_rank_high>utility_rank_low; utility_rank_high--)
                 {
                     int migrate_to = utilities[utility_rank_high].node_num;
                     auto & container = chrom.Gen[microservice_num][replica_num];
@@ -972,8 +959,7 @@ vector<Microservice_gene>& run(AlgorithmParameters & params, string & error)
     } while (iter>0);
     end = clock();
     cout<<"finished, total time elapsed: "<<(double)(end-begin)/CLOCKS_PER_SEC<<endl;
-    using outputIndexType = decltype(output.size());
-    for(outputIndexType i=0; i<output.size(); i++)
+    for(size_t i=0; i<output.size(); i++)
     {
         output[i].name = microservices[i].name;
         for(auto & container : best_chrom.Gen[i])
