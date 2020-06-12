@@ -88,6 +88,26 @@ bool IsSubset(const unordered_set<T> & s1, const unordered_set<T> & s2) {
 	return true;
 }
 
+vector<int> randomAmounts(size_t count, unsigned int range) {
+	uniform_int_distribution<int> randomRange(0, range);
+	default_random_engine engine(time(nullptr));
+	vector<int> ret;
+	for(size_t i=0; i<count; i++)
+		ret.push_back(randomRange(engine));
+	return ret;
+}
+
+vector<int> randomDistributions(size_t count, unsigned int total) {
+	if(count == 0)
+		return vector<int>();
+	auto amounts = randomAmounts(count-1, total);
+	sort(amounts.begin(), amounts.end());
+	amounts.push_back(total-amounts.back());
+	for(size_t i=1; i<amounts.size(); i++)
+		amounts[i] -= amounts[i-1];
+	return amounts;
+}
+
 double GAMSP::Cost(const std::vector<Gene> & genes) const {
 	double cost = 0;
 
@@ -319,6 +339,72 @@ void GAMSP::migrateBetweenTwo(Gene & sourceGene, GAMSP::utilization & sourceUt, 
 	}
 }
 
+void GAMSP::init() {
+	for(auto & chrom : popCurrent)
+	{
+		do{
+			initGenes(chrom.Genes);
+		}while(!restrain(chrom.Genes));
+	}
+}
+
+void GAMSP::initGenes(vector<Gene> & genes) {
+	for(size_t i=0; i<genes.size(); i++)
+		initLibrary(genes[i], nodes[i]);
+
+	for(size_t msIdx=0; msIdx<app.microservices.size(); msIdx++)
+	{
+		auto nodePtrs = availableNodes(genes, app.microservices[msIdx]);
+		for(size_t usReqIdx=0; usReqIdx<app.ms2userNum[msIdx].size(); usReqIdx++)
+		{
+			int reqNum = app.ms2userNum[msIdx][usReqIdx];
+			auto distributions = randomDistributions(nodePtrs.size(), reqNum);
+			assert(distributions.size() == nodePtrs.size());
+			for(size_t i=0; i<nodePtrs.size(); i++)
+				nodePtrs[i]->distribution[msIdx][usReqIdx] = distributions[i];
+		}
+	}
+}
+
+template <class T>
+const T& NthItem(unordered_set<T> & s, size_t idx) {
+	assert(idx < s.size());
+	auto it = s.begin();
+	for(size_t i=0; i<idx; i++, it++)
+	{}
+	return *it;
+}
+
+void GAMSP::initLibrary(Gene & gene, const Node & node) {
+	unordered_set<ImageType> imgSet;
+	double mem = node.mem;
+	for(size_t i=0; i<images.size(); i++)
+		imgSet.insert(i);
+	while(!imgSet.empty())
+	{
+		uniform_int_distribution<int> randomSetIdx(0, imgSet.size()-1);
+		ImageType imgIdx = NthItem(imgSet, randomSetIdx(rand.engine));
+		if(mem > images[imgIdx].mem)
+		{
+			gene.library.insert(imgIdx);
+			mem -= images[imgIdx].mem;
+		}
+		imgSet.erase(imgIdx);
+	}
+}
+
+std::vector<Gene*> GAMSP::availableNodes(std::vector<Gene> & genes, const Microservice & ms) const {
+	vector<Gene*> ret;
+	for(auto & gene : genes)
+	{
+		if(!IsSubset(ms.imageDependencies, gene.library))
+			ret.push_back(&gene);
+	}
+	return ret;
+}
+
+
+
 unordered_map<MicroserviceType , int> Gene::amounts() const
 {
 	unordered_map<MicroserviceType , int> ret;
@@ -352,6 +438,14 @@ double Microservice::CalcResourceAllocation(int amount) const {
 	return amount*resource/requestSum;
 }
 
+Microservice::Microservice(double r, int req, vector<ImageType> & v): resource(r), requestSum(req) {
+	for(size_t i=0; i<v.size(); i++)
+	{
+		if(v[i])
+			imageDependencies.insert(i);
+	}
+}
+
 MicroserviceType Application::distancedMsIdx(UserRequestType idx1, int offset) const {
 	assert(idx1 < user2msNum.size());
 	auto & ht = user2msNum[idx1];
@@ -372,4 +466,24 @@ UserRequestType Application::distancedUserIdx(MicroserviceType idx1, int offset)
 	for(int i=0; i<offset; i++,it++)
 	{}
 	return it->first;
+}
+
+Application::Application(std::vector<double> & vRes, std::vector<int> & vReq, std::vector<std::vector<ImageType>> & vImgs,
+                         std::vector<std::vector<int>> & req2ms) {
+	assert(vRes.size() == vReq.size());
+	assert(vRes.size() == vImgs.size());
+	for(size_t i=0; i<vRes.size(); i++)
+	{
+		microservices.emplace_back(vRes[i], vReq[i], vImgs[i]);
+	}
+	for(size_t reqIdx=0; reqIdx<req2ms.size(); reqIdx++)
+	{
+		for(size_t msIdx=0; msIdx<req2ms[reqIdx].size(); msIdx++)
+		{
+			int num = req2ms[reqIdx][msIdx];
+			user2msNum[reqIdx][msIdx] = num;
+			ms2userNum[msIdx][reqIdx] = num;
+		}
+	}
+
 }

@@ -41,6 +41,8 @@ struct Chromosome
 	double fitness=0;
 	double rfitness=0;
 	double cfitness=0;
+	Chromosome() = default;
+	explicit Chromosome(size_t size):Genes(size) {}
 };
 
 struct Node
@@ -62,6 +64,8 @@ struct Microservice
 	double resource;
 	std::unordered_set<ImageType> imageDependencies;
 	int requestSum;
+	Microservice() = default;
+	Microservice(double, int, std::vector<ImageType>&);
 	double CalcResourceAllocation(int) const;
 };
 
@@ -75,6 +79,8 @@ struct Application
 	Ms2User ms2userNum;
 	MicroserviceType distancedMsIdx(UserRequestType, int) const;
 	UserRequestType distancedUserIdx(MicroserviceType, int) const;
+	Application() = default;
+	Application(std::vector<double>&, std::vector<int>&, std::vector<std::vector<ImageType>>&, std::vector<std::vector<int>>&);
 };
 
 struct Random
@@ -98,10 +104,17 @@ public:
 	Application app;
 	mutable Random rand;
 	GAMSP(): popCurrent(POPSIZE), popNext(POPSIZE) {}
+	GAMSP(std::vector<Node>& ns, std::vector<Image>& is, Application & ap)
+	:popCurrent(POPSIZE, Chromosome(ns.size())), popNext(POPSIZE, Chromosome(ns.size())),
+	nodes(ns), images(is), app(ap) {}
+	GAMSP(std::vector<Node>&& ns, std::vector<Image>&& is, Application && ap)
+	:popCurrent(POPSIZE, Chromosome(ns.size())), popNext(POPSIZE, Chromosome(ns.size())),
+	nodes(std::move(ns)), images(std::move(is)), app(std::move(ap)) {}
 	bool restrain(const std::vector<Gene> &) const;
 	double MipsAllocation(const Gene &) const;
 	double MemAllocation(const Gene &) const;
 	double Cost(const std::vector<Gene> &) const;
+	void init();
 	void eval();
 	void elite();
 	void select();
@@ -131,6 +144,9 @@ public:
 	std::vector<utilization> RankedUtilization(std::vector<Gene> &);
 	void tryMigrate(size_t, std::vector<utilization> &, std::vector<Gene> &);
 	void migrateBetweenTwo(Gene&, utilization&, Gene&, utilization&);
+	void initGenes(std::vector<Gene> &);
+	void initLibrary(Gene &, const Node &);
+	std::vector<Gene*> availableNodes(std::vector<Gene> &, const Microservice&) const;
 };
 
 
