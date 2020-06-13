@@ -13,7 +13,10 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 	for(size_t i=0; i<genes.size(); i++)
 	{
 		if(MipsAllocation(genes[i]) > nodes[i].mips)
+		{
+			//printf_s("res1 failed\n");
 			return false;
+		}
 	}
 
 	for(size_t msIdx=0; msIdx<app.ms2userNum.size(); msIdx++)
@@ -28,7 +31,10 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 				sum += gene.GetSpecificAmount(msIdx, userReqIdx);
 			}
 			if(sum != num)
+			{
+				printf_s("res2 failed\n");
 				return false;
+			}
 		}
 	}
 
@@ -36,7 +42,10 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 	for(size_t i=0; i<genes.size(); i++)
 	{
 		if(MemAllocation(genes[i]) > nodes[i].mem)
+		{
+			printf_s("res3 failed\n");
 			return false;
+		}
 	}
 
 
@@ -90,7 +99,7 @@ bool IsSubset(const unordered_set<T> & s1, const unordered_set<T> & s2) {
 
 vector<int> randomAmounts(size_t count, unsigned int range) {
 	uniform_int_distribution<int> randomRange(0, range);
-	default_random_engine engine(time(nullptr));
+	static default_random_engine engine(time(nullptr));
 	vector<int> ret;
 	for(size_t i=0; i<count; i++)
 		ret.push_back(randomRange(engine));
@@ -102,9 +111,10 @@ vector<int> randomDistributions(size_t count, unsigned int total) {
 		return vector<int>();
 	auto amounts = randomAmounts(count-1, total);
 	sort(amounts.begin(), amounts.end());
-	amounts.push_back(total-amounts.back());
-	for(size_t i=1; i<amounts.size(); i++)
+	amounts.push_back(total);
+	for(size_t i=amounts.size()-1; i>0; i--)
 		amounts[i] -= amounts[i-1];
+	assert(accumulate(amounts.begin(), amounts.end(), 0) == total);
 	return amounts;
 }
 
@@ -201,6 +211,11 @@ void RangeSwap(vector<T> & v1, vector<T> & v2, int num) {
 	copy_n(temp.begin(), num, v2.begin());
 }
 
+void GAMSP::crossover() {
+	externalCrossOver();
+	internalCrossOver();
+}
+
 void GAMSP::externalCrossOver() {
 	uniform_int_distribution<int> randomPop(0, POPSIZE-1);
 	uniform_int_distribution<int> randomNode(0, nodes.size());
@@ -277,21 +292,22 @@ void GAMSP::mutateGene(Gene & gene) {
 	}
 }
 
-std::vector<GAMSP::utilization> GAMSP::RankedUtilization(std::vector<Gene> & genes) {
+std::vector<GAMSP::utilization> GAMSP::RankedUtilization(std::vector<Gene> & genes, function<bool(const utilization&, const utilization&)> cmp) {
 	vector<utilization> uts;
 
 	for(size_t nodeIdx=0; nodeIdx<genes.size(); nodeIdx++)
 	{
 		auto allocation = MipsAllocation(genes[nodeIdx]);
-		if(allocation == 0)
-			continue;
 		uts.push_back(utilization{
 			.nodeNum = nodeIdx,
 			.mips = nodes[nodeIdx].mips,
 			.allocation = allocation,
 		});
 	}
-	sort(uts.begin(), uts.end());
+	if(cmp == nullptr)
+		sort(uts.begin(), uts.end());
+	else
+		sort(uts.begin(), uts.end(), cmp);
 	return uts;
 }
 
@@ -345,25 +361,37 @@ void GAMSP::init() {
 		do{
 			initGenes(chrom.Genes);
 		}while(!restrain(chrom.Genes));
+		printf_s("init done\n");
 	}
 }
 
 void GAMSP::initGenes(vector<Gene> & genes) {
 	for(size_t i=0; i<genes.size(); i++)
 		initLibrary(genes[i], nodes[i]);
-
 	for(size_t msIdx=0; msIdx<app.microservices.size(); msIdx++)
 	{
 		auto nodePtrs = availableNodes(genes, app.microservices[msIdx]);
-		for(size_t usReqIdx=0; usReqIdx<app.ms2userNum[msIdx].size(); usReqIdx++)
+		for(const auto & pair : app.ms2userNum[msIdx])
 		{
-			int reqNum = app.ms2userNum[msIdx][usReqIdx];
+			size_t usReqIdx = pair.first;
+			int reqNum = pair.second;
 			auto distributions = randomDistributions(nodePtrs.size(), reqNum);
 			assert(distributions.size() == nodePtrs.size());
 			for(size_t i=0; i<nodePtrs.size(); i++)
 				nodePtrs[i]->distribution[msIdx][usReqIdx] = distributions[i];
 		}
 	}
+	checkGeneDistributions(genes);
+	for(size_t i=0; i<genes.size(); i++)
+	{
+		if(MipsAllocation(genes[i]) <= nodes[i].mips)
+			continue;
+		auto sortedUtilizations = RankedUtilization(genes, [](const utilization & a, const utilization &b) {
+			return a.calcUtilization() > b.calcUtilization();
+		});
+		tryFineTuneMigrate(i, sortedUtilizations, genes);
+	}
+	checkGeneDistributions(genes);
 }
 
 template <class T>
@@ -397,12 +425,93 @@ std::vector<Gene*> GAMSP::availableNodes(std::vector<Gene> & genes, const Micros
 	vector<Gene*> ret;
 	for(auto & gene : genes)
 	{
-		if(!IsSubset(ms.imageDependencies, gene.library))
+		if(IsSubset(ms.imageDependencies, gene.library))
 			ret.push_back(&gene);
 	}
 	return ret;
 }
 
+void GAMSP::Run() {
+	printf_s("Begin to run GAMSP...\n");
+	init();
+	printf_s("All chromosome init completed...\n");
+	int iter = MAXGENES;
+	do {
+		eval();
+		elite();
+		select();
+		crossover();
+		mutate();
+		migrate();
+		iter--;
+		printf_s("Iter: %d Fitness: %f\n", MAXGENES-iter+1, bestChrom.fitness);
+	}while(iter > 0);
+}
+
+void GAMSP::tryFineTuneMigrate(size_t idx, vector<utilization> & sortedUts, vector<Gene> & genes) {
+	 assert(idx < sortedUts.size());
+	 assert(sortedUts.size() == genes.size());
+	 if(sortedUts[idx].calcUtilization() <= 1)
+	 	return;
+	auto sourceNodeIdx = sortedUts[idx].nodeNum;
+	auto & sourceGene = genes[sourceNodeIdx];
+	for(size_t targetIdx=sortedUts.size()-1; targetIdx>idx; targetIdx--)
+	{
+		auto targetNodeIdx = sortedUts[targetIdx].nodeNum;
+		auto & targetGene = genes[targetNodeIdx];
+		fineTuneMigrateBetweenTwo(sourceGene, sortedUts[idx], targetGene, sortedUts[targetIdx]);
+		if(sortedUts[idx].calcUtilization() <= 1)
+		{
+			printf_s("node %d moved to node %d\n", sourceNodeIdx, targetNodeIdx);
+			return;
+		}
+	}
+}
+
+void GAMSP::fineTuneMigrateBetweenTwo(Gene & sourceGene, GAMSP::utilization & sourceUt, Gene & targetGene, GAMSP::utilization & targetUt) {
+	for(const auto  & msPair : sourceGene.distribution)
+	{
+		auto msIdx = msPair.first;
+		if(!IsSubset(app.microservices[msIdx].imageDependencies, targetGene.library))
+			continue;
+		for(const auto & reqPair : msPair.second)
+		{
+			auto usReqIdx = reqPair.first;
+			auto amount = reqPair.second;
+			auto amountToMove = randomAmounts(1, amount/2).front();
+			auto newAllocation = app.microservices[msIdx].CalcResourceAllocation(amountToMove);
+			if(!targetUt.isAvailable(newAllocation))
+				continue;
+			targetUt.allocation += newAllocation;
+			targetGene.distribution[msIdx][usReqIdx] += amountToMove;
+			sourceUt.allocation -= newAllocation;
+			sourceGene.distribution[msIdx][usReqIdx] -= amountToMove;
+		}
+		if(sourceUt.calcUtilization() <= 1)
+			break;
+	}
+}
+
+void GAMSP::checkGeneDistributions(const vector<Gene> & genes) const {
+	for(size_t msIdx=0; msIdx<app.ms2userNum.size(); msIdx++)
+	{
+		for(const auto & pair : app.ms2userNum[msIdx])
+		{
+			size_t usReqIdx = pair.first;
+			int num = pair.second;
+			int sum = 0;
+			for(const auto & gene : genes)
+				sum += gene.GetSpecificAmount(msIdx, usReqIdx);
+			assert(num == sum);
+//			if(num != sum)
+//			{
+//				for(const auto & gene : genes)
+//					cout<<gene.GetSpecificAmount(msIdx, usReqIdx)<<endl;
+//				printf_s("req sum panic!\nExpected: %d Actual: %d", num, sum);
+//			}
+		}
+	}
+}
 
 
 unordered_map<MicroserviceType , int> Gene::amounts() const
@@ -435,10 +544,15 @@ int Gene::GetSpecificAmount(MicroserviceType msIdx, UserRequestType userReqIdx) 
 }
 
 double Microservice::CalcResourceAllocation(int amount) const {
+
+	if(requestSum == 0)
+		return 0;
+	assert(amount >= 0);
+
 	return amount*resource/requestSum;
 }
 
-Microservice::Microservice(double r, int req, vector<ImageType> & v): resource(r), requestSum(req) {
+Microservice::Microservice(double r, int req, const vector<ImageType> & v): resource(r), requestSum(req) {
 	for(size_t i=0; i<v.size(); i++)
 	{
 		if(v[i])
@@ -468,22 +582,101 @@ UserRequestType Application::distancedUserIdx(MicroserviceType idx1, int offset)
 	return it->first;
 }
 
-Application::Application(std::vector<double> & vRes, std::vector<int> & vReq, std::vector<std::vector<ImageType>> & vImgs,
-                         std::vector<std::vector<int>> & req2ms) {
+Application::Application(const std::vector<double> & vRes, const std::vector<int> & vReq,
+			const std::vector<std::vector<ImageType>> & vImgs, const std::vector<std::vector<int>> & req2ms) {
 	assert(vRes.size() == vReq.size());
 	assert(vRes.size() == vImgs.size());
+	assert(!req2ms.empty());
 	for(size_t i=0; i<vRes.size(); i++)
 	{
 		microservices.emplace_back(vRes[i], vReq[i], vImgs[i]);
 	}
+	user2msNum.resize(req2ms.size());
+	ms2userNum.resize(req2ms.front().size());
 	for(size_t reqIdx=0; reqIdx<req2ms.size(); reqIdx++)
 	{
 		for(size_t msIdx=0; msIdx<req2ms[reqIdx].size(); msIdx++)
 		{
 			int num = req2ms[reqIdx][msIdx];
+			if(num == 0)
+				continue;
 			user2msNum[reqIdx][msIdx] = num;
 			ms2userNum[msIdx][reqIdx] = num;
 		}
 	}
+
+}
+
+void test() {
+	vector<Node> nodes = {
+			{16000, 40, 300, 27.27},
+			{4000, 48, 240, 21.82},
+			{8000, 52, 270, 24.55},
+			{8000, 64, 270, 24.55},
+			{8000, 64, 270, 24.55},
+			{2000, 40, 270, 19.09},
+			{4000, 40, 210, 21.82},
+			{16000, 52, 240, 27.27},
+			{4000, 48, 240, 21.82},
+			{16000, 64, 300, 27.27},
+	};
+	printf_s("Node vector initialize completed...\n");
+	vector<Image> images = {
+			{2}, {4}, {3}, {5}, {3}, {4}, {6}, {8},
+	};
+	printf_s("Image vector initialize completed...\n");
+	Application app = {
+			{460.00, 3876.92, 794.57, 3420.00, 16776.47, 3718.10, 4990.91, 0.00, 1388.57, 0.00,
+			852.17, 0.00, 0.00, 0.00, 0.00, 1565.50, 0.00, 0.00, 0.00, 3884.44,
+			0.00, 0.00, 0.00, 928.57, 0.00, 0.00, 0.00,	0.00,8120.00, 16800.00},
+
+			{230, 360, 270, 380, 1240, 610, 610, 0, 270, 0,
+			140, 0, 0, 0, 0, 310, 0, 0, 0, 460,
+			0, 0, 0, 250, 0, 0, 0, 0, 1160, 2400},
+
+			{{1,0,1,1,0,0,1,0},
+			{0,1,1,0,1,1,0,0},
+			{0,0,1,1,1,0,0,1},
+			{1,1,0,0,0,1,0,1},
+			{0,1,0,1,0,1,1,0},
+			{0,1,1,0,1,0,0,1},
+			{1,1,0,0,0,1,1,0},
+			{0,0,0,1,1,1,0,1},
+			{1,0,0,1,0,1,0,1},
+			{0,1,1,0,1,0,1,0},
+			{1,1,0,0,0,1,0,1},
+			{1,0,0,1,0,1,0,1},
+			{0,1,1,0,1,0,1,0},
+			{0,0,1,1,0,1,1,0},
+			{1,0,0,1,1,0,0,1},
+			{1,0,0,1,0,1,1,0},
+			{0,1,1,0,1,0,0,1},
+			{0,1,0,1,0,1,1,0},
+			{1,1,1,1,0,0,0,0},
+			{0,1,1,1,1,0,0,0},
+			{0,0,1,1,1,1,0,0},
+			{0,0,0,1,1,1,1,0},
+			{0,0,0,0,1,1,1,1},
+			{0,1,0,1,0,1,0,1},
+			{1,0,1,0,1,0,1,0},
+			{1,0,1,1,0,1,0,0},
+			{0,1,0,0,1,0,1,1},
+			{0,1,1,1,1,0,0,0},
+			{0,0,1,0,1,0,1,1},
+			{1,0,0,1,0,1,0,1}},
+
+			{{230,0,0,0,230,230,230,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,230},
+			{0,360,0,0,360,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,360},
+			{0,0,270,0,270,0,0,0,270,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,270},
+			{0,0,0,0,0,0,0,0,0,0,140,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,140,140},
+			{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,310,0,0,0,0,0,0,0,0,0,0,0,0,310,310},
+			{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,460,0,0,0,0,0,0,0,0,460,460},
+			{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,250,0,0,0,0,250,250},
+			{0,0,0,380,380,380,380,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,380}},
+	};
+	printf_s("Application initialize completed...\n");
+	GAMSP algorithm(nodes, images, app);
+	printf_s("GAMSP object initialize completed...\n");
+	algorithm.Run();
 
 }

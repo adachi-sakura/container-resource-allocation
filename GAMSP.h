@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <random>
 #include <ctime>
+#include <functional>
 
 #define POPSIZE  200             //个体数
 
@@ -65,7 +66,7 @@ struct Microservice
 	std::unordered_set<ImageType> imageDependencies;
 	int requestSum;
 	Microservice() = default;
-	Microservice(double, int, std::vector<ImageType>&);
+	Microservice(double, int, const std::vector<ImageType>&);
 	double CalcResourceAllocation(int) const;
 };
 
@@ -80,7 +81,7 @@ struct Application
 	MicroserviceType distancedMsIdx(UserRequestType, int) const;
 	UserRequestType distancedUserIdx(MicroserviceType, int) const;
 	Application() = default;
-	Application(std::vector<double>&, std::vector<int>&, std::vector<std::vector<ImageType>>&, std::vector<std::vector<int>>&);
+	Application(const std::vector<double> &, const std::vector<int> &, const std::vector<std::vector<ImageType>> &, const std::vector<std::vector<int>> &);
 };
 
 struct Random
@@ -118,10 +119,12 @@ public:
 	void eval();
 	void elite();
 	void select();
+	void crossover();
 	void externalCrossOver();
 	void internalCrossOver();
 	void mutate();
 	void migrate();
+	void Run();
 	void mutateGene(Gene &);
 	using ServicePairs = std::vector<std::pair<UserRequestType , MicroserviceType >>;
 	ServicePairs RandomServicePairs() const;
@@ -141,14 +144,17 @@ public:
 			return allocation+newAllocation <= mips;
 		}
 	};
-	std::vector<utilization> RankedUtilization(std::vector<Gene> &);
+	std::vector<utilization> RankedUtilization(std::vector<Gene> &, std::function<bool(const utilization&, const utilization&)> = nullptr);
 	void tryMigrate(size_t, std::vector<utilization> &, std::vector<Gene> &);
+	void tryFineTuneMigrate(size_t, std::vector<utilization> &, std::vector<Gene> &);
 	void migrateBetweenTwo(Gene&, utilization&, Gene&, utilization&);
+	void fineTuneMigrateBetweenTwo(Gene&, utilization&, Gene&, utilization&);
 	void initGenes(std::vector<Gene> &);
 	void initLibrary(Gene &, const Node &);
 	std::vector<Gene*> availableNodes(std::vector<Gene> &, const Microservice&) const;
+	void checkGeneDistributions(const std::vector<Gene> &) const;
 };
 
-
+void test();
 
 #endif //GENERIC_ALGORITHM_GAMSP_H
