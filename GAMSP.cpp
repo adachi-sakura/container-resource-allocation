@@ -32,7 +32,7 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 			}
 			if(sum != num)
 			{
-				printf_s("res2 failed\n");
+				//printf_s("res2 failed\n");
 				return false;
 			}
 		}
@@ -43,7 +43,7 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 	{
 		if(MemAllocation(genes[i]) > nodes[i].mem)
 		{
-			printf_s("res3 failed\n");
+			//printf_s("res3 failed\n");
 			return false;
 		}
 	}
@@ -292,7 +292,7 @@ void GAMSP::mutateGene(Gene & gene) {
 	}
 }
 
-std::vector<GAMSP::utilization> GAMSP::RankedUtilization(std::vector<Gene> & genes, function<bool(const utilization&, const utilization&)> cmp) {
+std::vector<GAMSP::utilization> GAMSP::RankedUtilization(std::vector<Gene> & genes, const function<bool(const utilization&, const utilization&)> & cmp) {
 	vector<utilization> uts;
 
 	for(size_t nodeIdx=0; nodeIdx<genes.size(); nodeIdx++)
@@ -361,7 +361,7 @@ void GAMSP::init() {
 		do{
 			initGenes(chrom.Genes);
 		}while(!restrain(chrom.Genes));
-		printf_s("init done\n");
+		//printf_s("init done\n");
 	}
 }
 
@@ -381,17 +381,15 @@ void GAMSP::initGenes(vector<Gene> & genes) {
 				nodePtrs[i]->distribution[msIdx][usReqIdx] = distributions[i];
 		}
 	}
-	checkGeneDistributions(genes);
-	for(size_t i=0; i<genes.size(); i++)
+	auto sortedUtilizations = RankedUtilization(genes, [](const utilization & a, const utilization &b) {
+		return a.calcUtilization() > b.calcUtilization();
+	});
+	for(size_t i=0; i<sortedUtilizations.size(); i++)
 	{
-		if(MipsAllocation(genes[i]) <= nodes[i].mips)
-			continue;
-		auto sortedUtilizations = RankedUtilization(genes, [](const utilization & a, const utilization &b) {
-			return a.calcUtilization() > b.calcUtilization();
-		});
+		if(sortedUtilizations[i].calcUtilization() <= 1)
+			return;
 		tryFineTuneMigrate(i, sortedUtilizations, genes);
 	}
-	checkGeneDistributions(genes);
 }
 
 template <class T>
@@ -462,7 +460,7 @@ void GAMSP::tryFineTuneMigrate(size_t idx, vector<utilization> & sortedUts, vect
 		fineTuneMigrateBetweenTwo(sourceGene, sortedUts[idx], targetGene, sortedUts[targetIdx]);
 		if(sortedUts[idx].calcUtilization() <= 1)
 		{
-			printf_s("node %d moved to node %d\n", sourceNodeIdx, targetNodeIdx);
+			//printf_s("node %d moved to node %d\n", sourceNodeIdx, targetNodeIdx);
 			return;
 		}
 	}

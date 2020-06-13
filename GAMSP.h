@@ -14,13 +14,13 @@
 
 #define POPSIZE  200             //个体数
 
-#define MAXGENES  200            //最大迭代次数
+#define MAXGENES  100            //最大迭代次数
 
-#define PXOVER  0.9            //交叉概率
+#define PXOVER  0.94            //交叉概率
 
-#define PMUTATION 0.25          //变异概率
+#define PMUTATION 0.05          //变异概率
 
-#define ELITERATE 0.3
+#define ELITERATE 0.2
 
 #define COSTTOTAL 1000000
 
@@ -144,7 +144,7 @@ public:
 			return allocation+newAllocation <= mips;
 		}
 	};
-	std::vector<utilization> RankedUtilization(std::vector<Gene> &, std::function<bool(const utilization&, const utilization&)> = nullptr);
+	std::vector<utilization> RankedUtilization(std::vector<Gene> &, const std::function<bool(const utilization&, const utilization&)> & = nullptr);
 	void tryMigrate(size_t, std::vector<utilization> &, std::vector<Gene> &);
 	void tryFineTuneMigrate(size_t, std::vector<utilization> &, std::vector<Gene> &);
 	void migrateBetweenTwo(Gene&, utilization&, Gene&, utilization&);
