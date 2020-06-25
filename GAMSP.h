@@ -24,6 +24,8 @@
 
 #define COSTTOTAL 1000000
 
+const double MipsPerCore = 2500;
+
 using MicroserviceType = int;
 using UserRequestType = int;
 using ImageType = int;
@@ -48,6 +50,7 @@ struct Chromosome
 
 struct Node
 {
+	std::string name;
 	double mips;
 	double mem;
 	double basePrice;
