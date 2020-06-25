@@ -107,6 +107,7 @@ public:
 	std::vector<Image> images;
 	Application app;
 	mutable Random rand;
+	GAMSP(const std::vector<Node>& ns);
 	GAMSP(): popCurrent(POPSIZE), popNext(POPSIZE) {}
 	GAMSP(std::vector<Node>& ns, std::vector<Image>& is, Application & ap)
 	:popCurrent(POPSIZE, Chromosome(ns.size())), popNext(POPSIZE, Chromosome(ns.size())),

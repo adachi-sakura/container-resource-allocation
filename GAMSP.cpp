@@ -512,6 +512,37 @@ void GAMSP::checkGeneDistributions(const vector<Gene> & genes) const {
 	}
 }
 
+GAMSP::GAMSP(const std::vector<Node> &ns)
+:popCurrent(POPSIZE, Chromosome(ns.size())), popNext(POPSIZE, Chromosome(ns.size())),
+nodes(ns){
+	vector<Image> ims = {
+			{10}, {20}, {15}, {25},
+	};
+	printf("Image vector initialize completed...\n");
+	Application application = {
+			{460.00, 2876.92, 494.57, 2000.00, 1676.47},
+
+			{230, 360, 270, 380, 1240},
+
+			{{1,0,1,1},
+			        {0,1,1,0},
+			        {0,0,1,1},
+			        {1,1,0,0},
+			        {0,1,0,1},
+			        },
+
+			{{230,0,0,0,230},
+			         {0,360,0,0,360},
+			         {0,0,270,0,270},
+			         {0,0,0,380,380},
+			         },
+	};
+	printf("Application initialize completed...\n");
+	this->images = move(ims);
+	this->app = move(application);
+	printf("GAMSP object initialize completed...\n");
+}
+
 
 unordered_map<MicroserviceType , int> Gene::amounts() const
 {
