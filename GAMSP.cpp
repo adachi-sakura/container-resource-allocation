@@ -14,7 +14,7 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 	{
 		if(MipsAllocation(genes[i]) > nodes[i].mips)
 		{
-			//printf_s("res1 failed\n");
+			//printf("res1 failed\n");
 			return false;
 		}
 	}
@@ -32,7 +32,7 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 			}
 			if(sum != num)
 			{
-				//printf_s("res2 failed\n");
+				//printf("res2 failed\n");
 				return false;
 			}
 		}
@@ -43,7 +43,7 @@ bool GAMSP::restrain(const std::vector<Gene> & genes) const
 	{
 		if(MemAllocation(genes[i]) > nodes[i].mem)
 		{
-			//printf_s("res3 failed\n");
+			//printf("res3 failed\n");
 			return false;
 		}
 	}
@@ -361,7 +361,7 @@ void GAMSP::init() {
 		do{
 			initGenes(chrom.Genes);
 		}while(!restrain(chrom.Genes));
-		//printf_s("init done\n");
+		//printf("init done\n");
 	}
 }
 
@@ -430,9 +430,9 @@ std::vector<Gene*> GAMSP::availableNodes(std::vector<Gene> & genes, const Micros
 }
 
 void GAMSP::Run() {
-	printf_s("Begin to run GAMSP...\n");
+	printf("Begin to run GAMSP...\n");
 	init();
-	printf_s("All chromosome init completed...\n");
+	printf("All chromosome init completed...\n");
 	int iter = MAXGENES;
 	do {
 		eval();
@@ -442,7 +442,8 @@ void GAMSP::Run() {
 		mutate();
 		migrate();
 		iter--;
-		printf_s("Iter: %d Fitness: %f\n", MAXGENES-iter+1, bestChrom.fitness);
+		if (iter % 10  == 0)
+			printf("Iter: %d Fitness: %f\n", MAXGENES-iter+1, bestChrom.fitness);
 	}while(iter > 0);
 }
 
@@ -460,7 +461,7 @@ void GAMSP::tryFineTuneMigrate(size_t idx, vector<utilization> & sortedUts, vect
 		fineTuneMigrateBetweenTwo(sourceGene, sortedUts[idx], targetGene, sortedUts[targetIdx]);
 		if(sortedUts[idx].calcUtilization() <= 1)
 		{
-			//printf_s("node %d moved to node %d\n", sourceNodeIdx, targetNodeIdx);
+			//printf("node %d moved to node %d\n", sourceNodeIdx, targetNodeIdx);
 			return;
 		}
 	}
@@ -505,7 +506,7 @@ void GAMSP::checkGeneDistributions(const vector<Gene> & genes) const {
 //			{
 //				for(const auto & gene : genes)
 //					cout<<gene.GetSpecificAmount(msIdx, usReqIdx)<<endl;
-//				printf_s("req sum panic!\nExpected: %d Actual: %d", num, sum);
+//				printf("req sum panic!\nExpected: %d Actual: %d", num, sum);
 //			}
 		}
 	}
@@ -618,11 +619,11 @@ void test() {
 			{4000, 48, 240, 21.82},
 			{16000, 64, 300, 27.27},
 	};
-	printf_s("Node vector initialize completed...\n");
+	printf("Node vector initialize completed...\n");
 	vector<Image> images = {
 			{2}, {4}, {3}, {5}, {3}, {4}, {6}, {8},
 	};
-	printf_s("Image vector initialize completed...\n");
+	printf("Image vector initialize completed...\n");
 	Application app = {
 			{460.00, 3876.92, 794.57, 3420.00, 16776.47, 3718.10, 4990.91, 0.00, 1388.57, 0.00,
 			852.17, 0.00, 0.00, 0.00, 0.00, 1565.50, 0.00, 0.00, 0.00, 3884.44,
@@ -672,9 +673,9 @@ void test() {
 			{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,250,0,0,0,0,250,250},
 			{0,0,0,380,380,380,380,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,380}},
 	};
-	printf_s("Application initialize completed...\n");
+	printf("Application initialize completed...\n");
 	GAMSP algorithm(nodes, images, app);
-	printf_s("GAMSP object initialize completed...\n");
+	printf("GAMSP object initialize completed...\n");
 	algorithm.Run();
 
 }
