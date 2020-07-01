@@ -2,7 +2,6 @@
 // Created by Administrator on 2020/5/11.
 //
 #include "Genetic.h"
-#include "thirdparty/jsonxx/jsonxx.h"
 using namespace jsonxx;
 
 void AlgorithmParameters::unserialize(const std::string & json)
@@ -14,8 +13,7 @@ void AlgorithmParameters::unserialize(const std::string & json)
     this->lm.cpu = o.get<Number>("cpu_lm");
     this->lm.mem = o.get<Number>("mem_lm");
     Array nodesArr = o.get<Array>("nodes");
-    using nodesIndexType = decltype(nodesArr.size());
-    for(nodesIndexType i=0; i < nodesArr.size(); i++)
+    for(size_t i=0; i < nodesArr.size(); i++)
     {
         Object node = nodesArr.get<Object>(i);
         Node no;
@@ -29,8 +27,7 @@ void AlgorithmParameters::unserialize(const std::string & json)
         this->nodes.push_back(no);
     }
     Array microservices = o.get<Array>("datas");
-    using msIndexType = decltype(microservices.size());
-    for(msIndexType i=0; i<microservices.size(); i++)
+    for(size_t i=0; i<microservices.size(); i++)
     {
         Object microservice = microservices.get<Object>(i);
         MicroserviceData ms;
@@ -45,8 +42,7 @@ void AlgorithmParameters::unserialize(const std::string & json)
         ms.leastResponseTime = microservice.get<Number>("leastResponseTime");
 
         Array invokeServices = microservice.get<Array>("microservicesToInvoke");
-        using invokeServicesIndexType = decltype(invokeServices.size());
-        for(invokeServicesIndexType j=0; j<invokeServices.size(); j++)
+        for(size_t j=0; j<invokeServices.size(); j++)
         {
             auto invokeService = invokeServices.get<Number>(j);
             ms.microservicesToInvoke.push_back(invokeService);
